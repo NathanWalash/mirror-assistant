@@ -14,7 +14,7 @@ def test_shipped_config_loads():
     cfg = load_config(find_repo_root())
     assert cfg.llm.base_url.startswith("http://127.0.0.1:")
     assert cfg.persona.name == "mirror.md"
-    assert cfg.tts.voice_path.suffix == ".onnx"
+    assert cfg.tts.voice.split("_")[0] in {"kokoro", "piper", "zipvoice"}
 
 
 def test_local_config_overrides_shared(tmp_path):

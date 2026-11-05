@@ -22,10 +22,16 @@ Built for edge devices and transcribes while you talk. Its own Pi 5 benchmarks: 
 Streaming ~0.24s and Small Streaming ~0.53s, vs ~5.9s for Whisper Tiny (vendor numbers,
 to be verified on our Pi). Voice activity detection is built in.
 
-## Text-to-speech: Piper (`en_GB-northern_english_male-medium`)
-Made for the Pi (Home Assistant's voice stack), faster than real time, and has a
-northern English voice. Kokoro sounds nicer but is likely too heavy for the Pi.
-Custom voices can be trained later.
+## Text-to-speech: Kokoro via Moonshine (`kokoro_bm_george`)
+Piper's northern voice sounded too robotic. Moonshine (already our speech-to-text) also
+runs Kokoro, Piper and ZipVoice voices behind one API, so the voice is a single config
+line (`tts.voice`) and `mirror-talk --voices` lists the options.
+
+Kokoro sounds far more natural but is ~6x slower than Piper (about 6x real time on an
+M2 Max; roughly real time on a Pi is our guess). Streaming fixes the wait: the first
+audio chunk is ready in ~0.25s instead of ~1.2s for a whole sentence, and synthesis and
+playback run in parallel. If the Pi can't keep up, fall back to a `piper_*` voice.
+ZipVoice can clone a voice from a short clip but is probably too slow for the Pi.
 
 ## Display: a plain web page fed by Server-Sent Events
 The voice loop serves `display/index.html` and pushes state/subtitle/loudness events over

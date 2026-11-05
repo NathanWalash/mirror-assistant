@@ -1,11 +1,10 @@
 [project]
 name = "mirror-voice"
 version = "0.1.0"
-description = "Mirror's voice loop: listen (Moonshine) -> think (llama.cpp) -> speak (Piper)."
+description = "Mirror's voice loop: listen (Moonshine) -> think (llama.cpp) -> speak (Kokoro/Piper via Moonshine)."
 requires-python = ">=3.12"
 dependencies = [
     "moonshine-voice>=0.1.5",
-    "piper-tts>=1.8",
     "sounddevice>=0.5",
     "numpy>=2",
     "pyyaml>=6",

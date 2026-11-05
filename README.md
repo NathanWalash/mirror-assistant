@@ -31,8 +31,16 @@ with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 |---|---|---|
 | Personality | `personality/personas/mirror.md` (your private copy) | next reply, no restart |
 | Shared personality template | `personality/personas/mirror.example.md` | after re-copying |
-| Model, voice, speed, creativity, reply length, display | `config.yaml` | restart `talk.sh` |
+| **Voice** (`tts.voice`), talking speed | `config.yaml` | restart `talk.sh` |
+| Model, creativity, reply length, display | `config.yaml` | restart `talk.sh` |
 | Your private setting overrides | `config.local.yaml` (create it) | restart `talk.sh` |
+
+**Trying voices:**
+```bash
+uv run mirror-talk --voices                                  # list them all
+uv run mirror-talk --say "Ey up, you look rough" --voice kokoro_bm_lewis   # hear one
+```
+Then set the one you like as `tts.voice` in `config.yaml` (or `config.local.yaml` to keep it to yourself).
 
 `mirror.md` and `config.local.yaml` are git-ignored, so personal stuff is safe there.
 **This repo is public**, so keep names and private details out of everything else.
@@ -41,7 +49,7 @@ with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 
 ```
 mic → Moonshine (speech-to-text) → llama.cpp (Hermes-3 Llama 3.2 3B, abliterated)
-    → Piper (text-to-speech, northern English voice) → speakers
+    → Kokoro (text-to-speech, "George", British male) → speakers
                                   ↘ display/ (orb + subtitles, live via Server-Sent Events)
 ```
 
