@@ -49,7 +49,7 @@ Then set the one you like as `tts.voice` in `config.yaml` (or `config.local.yaml
 
 ```
 mic → Moonshine (speech-to-text) → llama.cpp (Hermes-3 Llama 3.2 3B, abliterated)
-    → Kokoro (text-to-speech, "George", British male) → speakers
+    → Kokoro (text-to-speech, "Lewis", British male) → speakers
                                   ↘ display/ (orb + subtitles, live via Server-Sent Events)
 ```
 

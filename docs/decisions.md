@@ -22,7 +22,7 @@ Built for edge devices and transcribes while you talk. Its own Pi 5 benchmarks: 
 Streaming ~0.24s and Small Streaming ~0.53s, vs ~5.9s for Whisper Tiny (vendor numbers,
 to be verified on our Pi). Voice activity detection is built in.
 
-## Text-to-speech: Kokoro via Moonshine (`kokoro_bm_george`)
+## Text-to-speech: Kokoro via Moonshine (`kokoro_bm_lewis`)
 Piper's northern voice sounded too robotic. Moonshine (already our speech-to-text) also
 runs Kokoro, Piper and ZipVoice voices behind one API, so the voice is a single config
 line (`tts.voice`) and `mirror-talk --voices` lists the options.

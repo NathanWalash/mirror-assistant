@@ -28,10 +28,10 @@ stt:
 tts:
   # Mirror's voice. Change this one line and restart talk.sh.
   # List every option with:  uv run mirror-talk --voices
-  #   kokoro_*  : most natural (e.g. kokoro_bm_george, kokoro_bm_lewis, kokoro_bf_emma)
+  #   kokoro_*  : most natural (e.g. kokoro_bm_lewis, kokoro_bm_george, kokoro_bf_emma)
   #   piper_*   : fastest, more robotic (e.g. piper_en_GB-alan-medium)
   #   zipvoice_*: many accents, slowest
-  voice: kokoro_bm_george
+  voice: kokoro_bm_lewis
   language: en-gb      # accent/pronunciation rules (en-gb or en-us)
   speed: 1.0           # >1 talks faster, <1 slower
   volume: 1.0
