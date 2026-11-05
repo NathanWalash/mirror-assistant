@@ -78,7 +78,18 @@ class _Handler(SimpleHTTPRequestHandler):
     def log_message(self, *args: object) -> None:  # keep the terminal clean
         pass
 
+    def _host_allowed(self) -> bool:
+        # The event stream carries transcripts of what's said in the room. Only answer
+        # requests addressed to this machine by name, which blocks DNS-rebinding attacks
+        # (a web page pointing its own domain at 127.0.0.1 to read the stream).
+        port = self.server.server_address[1]
+        host = self.headers.get("Host", "")
+        return host in {f"127.0.0.1:{port}", f"localhost:{port}"}
+
     def do_GET(self) -> None:
+        if not self._host_allowed():
+            self.send_error(403, "Forbidden host")
+            return
         if self.path != "/events":
             return super().do_GET()
         self.send_response(200)

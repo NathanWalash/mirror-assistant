@@ -46,6 +46,25 @@ def test_envelope_has_one_value_per_step():
     assert len(envelope(audio, 16000, step=0.05)) == 20
 
 
+def test_server_rejects_foreign_host_header():
+    import urllib.error
+
+    import pytest
+
+    server = DisplayServer(find_repo_root() / "display", 0, Broadcaster()).start()
+    try:
+        for path in ("", "events"):
+            req = urllib.request.Request(server.url + path, headers={"Host": "evil.example:80"})
+            with pytest.raises(urllib.error.HTTPError) as err:
+                urllib.request.urlopen(req, timeout=3)
+            assert err.value.code == 403
+        port = server.httpd.server_address[1]
+        ok = urllib.request.Request(server.url, headers={"Host": f"localhost:{port}"})
+        assert urllib.request.urlopen(ok, timeout=3).status == 200
+    finally:
+        server.stop()
+
+
 def test_server_serves_page_and_events():
     b = Broadcaster()
     server = DisplayServer(find_repo_root() / "display", 0, b).start()
