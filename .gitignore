@@ -12,7 +12,8 @@ models/*
 
 # Secrets & local overrides
 .env
-config.local.yaml
+# Personal settings; config.example.yaml is the shared template
+config.yaml
 
 # OS / editors
 .DS_Store

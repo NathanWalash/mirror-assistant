@@ -1,10 +1,13 @@
-# Mirror's shared default settings. Restart `scripts/talk.sh` to apply changes.
-# (The persona file is different: it's re-read on every reply, no restart needed.)
+# Mirror's SHARED default settings (committed; the repo is public).
 #
-# Personal/private overrides go in config.local.yaml (git-ignored). It only needs the
-# keys you want to change, e.g.:
-#   llm:
-#     temperature: 1.1
+# Your own settings live in config.yaml, which is git-ignored. scripts/setup.sh creates
+# it as a copy of this file. Anything you delete from config.yaml falls back to the
+# value here, so it can be as short as:
+#   tts:
+#     voice: kokoro_bm_lewis
+#
+# Restart scripts/talk.sh after changing settings. (The persona file is different:
+# it's re-read on every reply, no restart needed.)
 
 # Who Mirror is. Plain English; edit this file to change the personality.
 # Your private copy (git-ignored), created from mirror.example.md by scripts/setup.sh.

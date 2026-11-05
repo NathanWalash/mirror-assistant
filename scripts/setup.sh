@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup: installs tools, Python deps, the voice, and your private persona copy.
+# One-time setup: installs tools, Python deps, the voice, and your private config + persona.
 # Safe to re-run any time.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -22,6 +22,14 @@ if ! command -v llama-server >/dev/null; then
     echo "  Linux / Raspberry Pi: see https://github.com/ggml-org/llama.cpp (Pi script coming later)"
     exit 1
   fi
+fi
+
+say "Personal settings"
+if [[ -f config.yaml ]]; then
+  echo "Keeping your existing config.yaml"
+else
+  cp config.example.yaml config.yaml
+  echo "Created config.yaml from config.example.yaml. It's git-ignored: make it yours."
 fi
 
 say "Installing Python dependencies"
