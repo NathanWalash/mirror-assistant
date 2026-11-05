@@ -1,10 +1,13 @@
-# Mirror's shared default settings. Restart `scripts/talk.sh` to apply changes.
-# (The persona file is different: it's re-read on every reply, no restart needed.)
+# Mirror's SHARED default settings (committed; the repo is public).
 #
-# Personal/private overrides go in config.local.yaml (git-ignored). It only needs the
-# keys you want to change, e.g.:
-#   llm:
-#     temperature: 1.1
+# Your own settings live in config.yaml, which is git-ignored. scripts/setup.sh creates
+# it as a copy of this file. Anything you delete from config.yaml falls back to the
+# value here, so it can be as short as:
+#   tts:
+#     voice: kokoro_bm_lewis
+#
+# Restart scripts/talk.sh after changing settings. (The persona file is different:
+# it's re-read on every reply, no restart needed.)
 
 # Who Mirror is. Plain English; edit this file to change the personality.
 # Your private copy (git-ignored), created from mirror.example.md by scripts/setup.sh.
@@ -28,10 +31,10 @@ stt:
 tts:
   # Mirror's voice. Change this one line and restart talk.sh.
   # List every option with:  uv run mirror-talk --voices
-  #   kokoro_*  : most natural (e.g. kokoro_bm_lewis, kokoro_bm_george, kokoro_bf_emma)
+  #   kokoro_*  : most natural (e.g. kokoro_bm_george, kokoro_bm_lewis, kokoro_bf_emma)
   #   piper_*   : fastest, more robotic (e.g. piper_en_GB-alan-medium)
   #   zipvoice_*: many accents, slowest
-  voice: kokoro_bm_lewis
+  voice: kokoro_bm_george
   language: en-gb      # accent/pronunciation rules (en-gb or en-us)
   speed: 1.0           # >1 talks faster, <1 slower
   volume: 1.0

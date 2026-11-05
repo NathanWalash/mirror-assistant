@@ -1,4 +1,9 @@
-"""Load config.yaml, with optional private overrides from config.local.yaml."""
+"""Load settings: shared defaults from config.example.yaml, your config.yaml on top.
+
+config.example.yaml is committed. config.yaml is yours and git-ignored (scripts/setup.sh
+creates it as a copy). Anything you leave out of config.yaml falls back to the example,
+so new settings added to the example still reach everyone.
+"""
 
 from __future__ import annotations
 
@@ -8,8 +13,8 @@ from typing import Any
 
 import yaml
 
+EXAMPLE_CONFIG_NAME = "config.example.yaml"
 CONFIG_NAME = "config.yaml"
-LOCAL_CONFIG_NAME = "config.local.yaml"
 
 
 @dataclass(frozen=True)
@@ -57,12 +62,12 @@ class Config:
 
 
 def find_repo_root(start: Path | None = None) -> Path:
-    """Walk up from `start` (default: cwd) to the folder holding config.yaml."""
+    """Walk up from `start` (default: cwd) to the folder holding config.example.yaml."""
     here = (start or Path.cwd()).resolve()
     for folder in (here, *here.parents):
-        if (folder / CONFIG_NAME).is_file():
+        if (folder / EXAMPLE_CONFIG_NAME).is_file():
             return folder
-    raise FileNotFoundError(f"Couldn't find {CONFIG_NAME} in {here} or any parent folder.")
+    raise FileNotFoundError(f"Couldn't find {EXAMPLE_CONFIG_NAME} in {here} or any parent.")
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -78,10 +83,10 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 
 def load_config(root: Path | None = None) -> Config:
     root = root or find_repo_root()
-    raw = yaml.safe_load((root / CONFIG_NAME).read_text()) or {}
-    local = root / LOCAL_CONFIG_NAME
-    if local.is_file():
-        raw = deep_merge(raw, yaml.safe_load(local.read_text()) or {})
+    raw = yaml.safe_load((root / EXAMPLE_CONFIG_NAME).read_text()) or {}
+    mine = root / CONFIG_NAME
+    if mine.is_file():
+        raw = deep_merge(raw, yaml.safe_load(mine.read_text()) or {})
 
     llm, stt, tts = raw["llm"], raw["stt"], raw["tts"]
     display = raw.get("display", {})

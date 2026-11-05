@@ -17,9 +17,15 @@ def test_shipped_config_loads():
     assert cfg.tts.voice.split("_")[0] in {"kokoro", "piper", "zipvoice"}
 
 
-def test_local_config_overrides_shared(tmp_path):
-    shutil.copy(find_repo_root() / "config.yaml", tmp_path / "config.yaml")
-    (tmp_path / "config.local.yaml").write_text("llm:\n  temperature: 1.3\n")
+def test_personal_config_overrides_example(tmp_path):
+    shutil.copy(find_repo_root() / "config.example.yaml", tmp_path / "config.example.yaml")
+    (tmp_path / "config.yaml").write_text("llm:\n  temperature: 1.3\ntts:\n  voice: x_y\n")
     cfg = load_config(tmp_path)
     assert cfg.llm.temperature == 1.3
-    assert cfg.llm.port == 8080  # untouched keys still come from config.yaml
+    assert cfg.tts.voice == "x_y"
+    assert cfg.llm.port == 8080  # untouched keys still come from the example
+
+
+def test_works_without_personal_config(tmp_path):
+    shutil.copy(find_repo_root() / "config.example.yaml", tmp_path / "config.example.yaml")
+    assert load_config(tmp_path).llm.port == 8080

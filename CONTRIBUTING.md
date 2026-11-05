@@ -28,7 +28,7 @@
 | Shared (committed) | Private (git-ignored) |
 |---|---|
 | `personality/personas/mirror.example.md` | `personality/personas/mirror.md` |
-| `config.yaml` | `config.local.yaml` |
+| `config.example.yaml` | `config.yaml` |
 | code, docs, scripts | `models/`, `.env`, `*.wav` |
 
 **The repo is public.** Names, addresses, calendar links, API keys and in-jokes about real

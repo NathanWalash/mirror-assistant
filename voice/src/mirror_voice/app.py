@@ -2,7 +2,7 @@
 
 uv run mirror-talk              # live: just talk, Mirror answers when you pause
 uv run mirror-talk --selftest   # no mic: a synthetic voice asks, the pipeline answers
-uv run mirror-talk --voices     # list every voice you can put in config.yaml
+uv run mirror-talk --voices     # list every voice you can put in your config.yaml
 uv run mirror-talk --say "Ey up" [--voice kokoro_bm_lewis]   # hear a voice
 
 While live, the display (glowing orb + subtitles) is served at http://127.0.0.1:8765/.
@@ -252,7 +252,7 @@ def main() -> None:
     parser.add_argument("--selftest", action="store_true", help="test without a microphone")
     parser.add_argument("--voices", action="store_true", help="list available voices")
     parser.add_argument("--say", metavar="TEXT", help="speak TEXT in Mirror's voice and exit")
-    parser.add_argument("--voice", metavar="ID", help="use this voice instead of config.yaml's")
+    parser.add_argument("--voice", metavar="ID", help="override the configured voice")
     args = parser.parse_args()
 
     cfg = load_config()
