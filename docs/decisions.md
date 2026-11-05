@@ -1,0 +1,32 @@
+# Decisions so far
+
+What we picked, and why. Revisit any of these when they stop being true.
+
+## Run everything locally, on the Pi
+Privacy, no API bills, and it's a fun challenge. The model is called through an
+OpenAI-compatible API, so pointing at a bigger machine later is a config change, not a rewrite.
+
+## Brain: small abliterated model via llama.cpp
+- **Size 3–4B, 4-bit quantised (Q4_K_M).** Pi 5 generation is limited by memory bandwidth:
+  roughly 4–6 tokens/sec at 3B. Fine for short spoken replies streamed sentence by
+  sentence; 7–8B is too slow to chat with.
+- **Current model: Hermes-3 Llama 3.2 3B, abliterated.** Hermes is tuned for playing a
+  character; abliteration removes refusals. A quick, ready-made pick to get going.
+- **llama.cpp over Ollama:** reported 10–20% faster on the Pi, and the same files run on Mac.
+- **Next:** abliterate the newest small Qwen ourselves with
+  [Heretic](https://github.com/p-e-w/heretic) (no training needed, ~30–40 min on a rented
+  GPU; can also reduce "assistant slop"), then LoRA fine-tune the personality in.
+
+## Speech-to-text: Moonshine (`small_streaming`)
+Built for edge devices and transcribes while you talk. Its own Pi 5 benchmarks: Tiny
+Streaming ~0.24s and Small Streaming ~0.53s, vs ~5.9s for Whisper Tiny (vendor numbers,
+to be verified on our Pi). Voice activity detection is built in.
+
+## Text-to-speech: Piper (`en_GB-northern_english_male-medium`)
+Made for the Pi (Home Assistant's voice stack), faster than real time, and has a
+northern English voice. Kokoro sounds nicer but is likely too heavy for the Pi.
+Custom voices can be trained later.
+
+## Personality lives in a plain Markdown file
+Re-read on every reply, so we can iterate without restarts. The shared template is
+committed and personal copies are git-ignored (the repo is public).

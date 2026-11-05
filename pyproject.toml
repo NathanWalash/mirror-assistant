@@ -1,0 +1,28 @@
+[project]
+name = "mirror-assistant"
+version = "0.1.0"
+description = "A local, talking smart mirror for a shared flat."
+requires-python = ">=3.12"
+dependencies = ["mirror-voice"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["voice"]
+
+[tool.uv.sources]
+mirror-voice = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["voice/tests"]

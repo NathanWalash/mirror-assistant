@@ -1,0 +1,34 @@
+# Mirror's shared default settings. Restart `scripts/talk.sh` to apply changes.
+# (The persona file is different: it's re-read on every reply, no restart needed.)
+#
+# Personal/private overrides go in config.local.yaml (git-ignored). It only needs the
+# keys you want to change, e.g.:
+#   llm:
+#     temperature: 1.1
+
+# Who Mirror is. Plain English; edit this file to change the personality.
+# Your private copy (git-ignored), created from mirror.example.md by scripts/setup.sh.
+persona: personality/personas/mirror.md
+
+llm:
+  # llama.cpp server that does the thinking. scripts/talk.sh starts it for you.
+  port: 8080
+  # Hugging Face repo:quant that llama.cpp downloads on first run (~2 GB).
+  model: mradermacher/Hermes-3-Llama-3.2-3B-abliterated-i1-GGUF:Q4_K_M
+  context_size: 8192
+  temperature: 0.8     # higher = more random/creative, lower = more predictable
+  max_tokens: 150      # hard cap on reply length
+  history_turns: 10    # how many recent messages it remembers
+
+stt:
+  # Moonshine speech-to-text model: tiny_streaming | small_streaming | medium_streaming
+  # Bigger = more accurate but slower. small_streaming is our bet for the Pi.
+  model: small_streaming
+
+tts:
+  # Piper voice name, downloaded into models/voices by scripts/setup.sh.
+  # Browse voices: https://rhasspy.github.io/piper-samples/
+  voice: en_GB-northern_english_male-medium
+  voices_dir: models/voices
+  length_scale: 1.0    # >1 speaks slower, <1 faster
+  volume: 1.0
