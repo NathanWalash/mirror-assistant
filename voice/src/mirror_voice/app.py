@@ -1,7 +1,9 @@
-"""Mirror's talk loop: mic -> Moonshine -> llama.cpp (streamed) -> Piper -> speakers.
+"""Mirror's talk loop: mic -> Moonshine -> llama.cpp (streamed) -> Kokoro/Piper -> speakers.
 
 uv run mirror-talk              # live: just talk, Mirror answers when you pause
-uv run mirror-talk --selftest   # no mic: Piper asks a question, the pipeline answers
+uv run mirror-talk --selftest   # no mic: a synthetic voice asks, the pipeline answers
+uv run mirror-talk --voices     # list every voice you can put in config.yaml
+uv run mirror-talk --say "Ey up" [--voice kokoro_bm_lewis]   # hear a voice
 
 While live, the display (glowing orb + subtitles) is served at http://127.0.0.1:8765/.
 """
@@ -15,16 +17,17 @@ import threading
 import time
 import wave
 import webbrowser
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
 
 from mirror_voice.config import Config, load_config
-from mirror_voice.display_server import Broadcaster, DisplayServer, envelope, loudness
+from mirror_voice.display_server import Broadcaster, DisplayServer, loudness
 from mirror_voice.llm import Conversation, LLMClient, LLMUnavailable
 from mirror_voice.persona import Persona
 from mirror_voice.sentences import SentenceSplitter
-from mirror_voice.tts import Voice
+from mirror_voice.tts import Voice, available_voices
 
 
 class Mirror:
@@ -44,27 +47,59 @@ class Mirror:
         messages = self.chat.build(self.persona.system_prompt())
         messages.append({"role": "user", "content": user_text})
 
+        # Three stages run at once so nothing waits on anything else:
+        #   this thread: LLM tokens -> sentences      -> to_speak
+        #   synth:       sentences  -> audio chunks   -> to_play   (streamed, first chunk fast)
+        #   player:      audio chunks -> speakers + orb + subtitles
         to_speak: queue.Queue[str | None] = queue.Queue()
+        to_play: queue.Queue[tuple[str | None, np.ndarray, int] | None] = queue.Queue()
         recorded: list[tuple[np.ndarray, int]] = []
         first_audio_at: list[float] = []
 
-        def speaker() -> None:
-            while (sentence := to_speak.get()) is not None:
-                audio, rate = self.voice.synth(sentence)
-                if not first_audio_at:
-                    first_audio_at.append(time.time())
-                self.display.publish(state="speaking", say=sentence)
-                if record_to:
-                    recorded.append((audio, rate))
-                    continue
-                sd.play(audio, rate)
-                for level in envelope(audio, rate, step=0.05):  # pulse the orb with the voice
-                    self.display.publish(level=level)
-                    time.sleep(0.05)
-                sd.wait()
+        def synth() -> None:
+            try:
+                while (sentence := to_speak.get()) is not None:
+                    for i, (audio, rate) in enumerate(self.voice.stream(sentence)):
+                        if not first_audio_at:
+                            first_audio_at.append(time.time())
+                        to_play.put((sentence if i == 0 else None, audio, rate))
+            finally:
+                to_play.put(None)
 
-        thread = threading.Thread(target=speaker, daemon=True)
-        thread.start()
+        def player() -> None:
+            out = None
+            try:
+                while (item := to_play.get()) is not None:
+                    sentence, audio, rate = item
+                    if sentence:
+                        self.display.publish(state="speaking", say=sentence)
+                    if record_to:
+                        recorded.append((audio, rate))
+                        continue
+                    if out is None or out.samplerate != rate:
+                        if out is not None:
+                            out.stop()
+                            out.close()
+                        out = sd.OutputStream(samplerate=rate, channels=1, dtype="int16")
+                        out.start()
+                    # Write in 50 ms slices: the blocking write paces playback in real
+                    # time, so each loudness update lands as that slice is heard.
+                    step = int(rate * 0.05)
+                    for start in range(0, len(audio), step):
+                        piece = audio[start : start + step]
+                        self.display.publish(level=loudness(piece))
+                        out.write(piece.reshape(-1, 1))
+            finally:
+                if out is not None:
+                    out.stop()  # waits for the last audio to finish playing
+                    out.close()
+
+        threads = [
+            threading.Thread(target=synth, daemon=True),
+            threading.Thread(target=player, daemon=True),
+        ]
+        for thread in threads:
+            thread.start()
 
         splitter, reply = SentenceSplitter(), []
         print("Mirror: ", end="", flush=True)
@@ -80,7 +115,8 @@ class Mirror:
                 to_speak.put(rest)
         finally:
             to_speak.put(None)
-            thread.join()
+            for thread in threads:
+                thread.join()
             self.display.publish(state="idle")
         print()
 
@@ -202,12 +238,34 @@ def live(mirror: Mirror) -> None:
         mic.close()
 
 
+def preview_voice(cfg: Config, text: str) -> None:
+    import sounddevice as sd
+
+    print(f"{cfg.tts.voice}: {text}")
+    audio, rate = Voice(cfg.tts).synth(text)
+    sd.play(audio, rate)
+    sd.wait()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Talk to Mirror.")
     parser.add_argument("--selftest", action="store_true", help="test without a microphone")
+    parser.add_argument("--voices", action="store_true", help="list available voices")
+    parser.add_argument("--say", metavar="TEXT", help="speak TEXT in Mirror's voice and exit")
+    parser.add_argument("--voice", metavar="ID", help="use this voice instead of config.yaml's")
     args = parser.parse_args()
 
     cfg = load_config()
+    if args.voice:
+        cfg = replace(cfg, tts=replace(cfg.tts, voice=args.voice))
+    if args.voices:
+        print(f"Voices for {cfg.tts.language} (current: {cfg.tts.voice}):")
+        print("\n".join(f"  {v}" for v in available_voices(cfg.tts.language)))
+        return
+    if args.say:
+        preview_voice(cfg, args.say)
+        return
+
     mirror = Mirror(cfg)
     try:
         mirror.llm.check()

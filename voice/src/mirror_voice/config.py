@@ -34,13 +34,9 @@ class STTConfig:
 @dataclass(frozen=True)
 class TTSConfig:
     voice: str
-    voices_dir: Path
-    length_scale: float
+    language: str
+    speed: float
     volume: float
-
-    @property
-    def voice_path(self) -> Path:
-        return self.voices_dir / f"{self.voice}.onnx"
 
 
 @dataclass(frozen=True)
@@ -103,9 +99,9 @@ def load_config(root: Path | None = None) -> Config:
         stt=STTConfig(model=str(stt["model"])),
         tts=TTSConfig(
             voice=str(tts["voice"]),
-            voices_dir=root / tts["voices_dir"],
-            length_scale=float(tts["length_scale"]),
-            volume=float(tts["volume"]),
+            language=str(tts.get("language", "en-gb")),
+            speed=float(tts.get("speed", 1.0)),
+            volume=float(tts.get("volume", 1.0)),
         ),
         display=DisplayConfig(
             enabled=bool(display.get("enabled", True)),

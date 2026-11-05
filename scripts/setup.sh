@@ -28,14 +28,12 @@ say "Installing Python dependencies"
 uv sync
 
 say "Downloading voice"
-voice=$(uv run python -c "from mirror_voice.config import load_config; print(load_config().tts.voice)")
-voices_dir=$(uv run python -c "from mirror_voice.config import load_config; print(load_config().tts.voices_dir)")
-mkdir -p "$voices_dir"
-if [[ -f "$voices_dir/$voice.onnx" ]]; then
-  echo "Already have $voice"
-else
-  uv run python -m piper.download_voices --data-dir "$voices_dir" "$voice"
-fi
+uv run python -c "
+from mirror_voice.config import load_config
+from mirror_voice.tts import Voice
+cfg = load_config().tts
+Voice(cfg)
+print('Ready:', cfg.voice)"
 
 say "Personal persona"
 persona=personality/personas/mirror.md

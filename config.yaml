@@ -26,11 +26,14 @@ stt:
   model: small_streaming
 
 tts:
-  # Piper voice name, downloaded into models/voices by scripts/setup.sh.
-  # Browse voices: https://rhasspy.github.io/piper-samples/
-  voice: en_GB-northern_english_male-medium
-  voices_dir: models/voices
-  length_scale: 1.0    # >1 speaks slower, <1 faster
+  # Mirror's voice. Change this one line and restart talk.sh.
+  # List every option with:  uv run mirror-talk --voices
+  #   kokoro_*  : most natural (e.g. kokoro_bm_george, kokoro_bm_lewis, kokoro_bf_emma)
+  #   piper_*   : fastest, more robotic (e.g. piper_en_GB-alan-medium)
+  #   zipvoice_*: many accents, slowest
+  voice: kokoro_bm_george
+  language: en-gb      # accent/pronunciation rules (en-gb or en-us)
+  speed: 1.0           # >1 talks faster, <1 slower
   volume: 1.0
 
 display:
