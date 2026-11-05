@@ -4,7 +4,8 @@ An old TV + a Raspberry Pi 5, turned into a smart mirror for our flat: weather, 
 buses, and **Mirror**, a sarcastic Yorkshire assistant you can talk to out loud.
 Everything runs locally, with no cloud.
 
-**Status:** the voice loop works on a Mac. The display, data and Pi deployment come later.
+**Status:** voice loop + a first display (a glowing orb with subtitles) work on a Mac.
+Weather, calendars and Pi deployment come later.
 
 ## Quickstart (macOS)
 
@@ -16,6 +17,11 @@ scripts/talk.sh    # talk to Mirror (first run downloads the ~2 GB model)
 Then just talk. Mirror answers when you pause, and Ctrl+C quits. macOS will ask for
 microphone access for your terminal the first time.
 
+A browser tab opens with **Mirror's face**: a glowing orb that breathes when idle, lights
+up when it hears you, swirls while thinking, and pulses as it talks, with subtitles.
+Click it or press F for full screen. (It's at http://127.0.0.1:8765, and you can turn the
+auto-open off in `config.yaml`.)
+
 No mic, or just checking it works? `scripts/talk.sh --selftest` asks Mirror a question
 with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 
@@ -25,7 +31,7 @@ with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 |---|---|---|
 | Personality | `personality/personas/mirror.md` (your private copy) | next reply, no restart |
 | Shared personality template | `personality/personas/mirror.example.md` | after re-copying |
-| Model, voice, speed, creativity, reply length | `config.yaml` | restart `talk.sh` |
+| Model, voice, speed, creativity, reply length, display | `config.yaml` | restart `talk.sh` |
 | Your private setting overrides | `config.local.yaml` (create it) | restart `talk.sh` |
 
 `mirror.md` and `config.local.yaml` are git-ignored, so personal stuff is safe there.
@@ -36,6 +42,7 @@ with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 ```
 mic → Moonshine (speech-to-text) → llama.cpp (Hermes-3 Llama 3.2 3B, abliterated)
     → Piper (text-to-speech, northern English voice) → speakers
+                                  ↘ display/ (orb + subtitles, live via Server-Sent Events)
 ```
 
 The reply is streamed and spoken sentence by sentence, so Mirror starts talking before
@@ -45,11 +52,12 @@ it has finished thinking. More detail in [docs/decisions.md](docs/decisions.md).
 
 ```
 voice/         the talk loop (Python package: mirror_voice)
+display/       the mirror screen (plain HTML/JS, served by the voice loop)
 personality/   personas now; fine-tuning datasets and scripts later
 scripts/       setup.sh, talk.sh
 models/        downloaded models and voices (git-ignored)
 docs/          decisions, hardware notes, roadmap
-hub/ display/ deploy/   coming later
+hub/ deploy/   coming later
 ```
 
 Working on it together: see [CONTRIBUTING.md](CONTRIBUTING.md).

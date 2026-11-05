@@ -27,6 +27,12 @@ Made for the Pi (Home Assistant's voice stack), faster than real time, and has a
 northern English voice. Kokoro sounds nicer but is likely too heavy for the Pi.
 Custom voices can be trained later.
 
+## Display: a plain web page fed by Server-Sent Events
+The voice loop serves `display/index.html` and pushes state/subtitle/loudness events over
+SSE using only Python's standard library. No framework or build step yet: one HTML file
+with a canvas orb. On the Pi, Chromium in kiosk mode shows the same page. We'll reach
+for a framework only once widgets make the page complex.
+
 ## Personality lives in a plain Markdown file
 Re-read on every reply, so we can iterate without restarts. The shared template is
 committed and personal copies are git-ignored (the repo is public).
