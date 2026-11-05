@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Big / generated files
+models/*
+!models/.gitkeep
+*.wav
+
+# Secrets & local overrides
+.env
+config.local.yaml
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Personal personas: only the *.example.md templates are shared.
+# scripts/setup.sh copies mirror.example.md -> mirror.md for you to edit privately.
+personality/personas/*.md
+!personality/personas/*.example.md
