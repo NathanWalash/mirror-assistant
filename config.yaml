@@ -32,3 +32,9 @@ tts:
   voices_dir: models/voices
   length_scale: 1.0    # >1 speaks slower, <1 faster
   volume: 1.0
+
+display:
+  # The mirror screen (glowing orb + subtitles), served while talk.sh runs.
+  enabled: true
+  port: 8765
+  open_browser: true   # open it automatically in your browser

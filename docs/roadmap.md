@@ -20,5 +20,6 @@ Rough order. AI first, then the mirror around it.
 ## The mirror
 - [ ] Hub: weather (Open-Meteo), both calendars (private ICS links), local bus stop
       (Bus Open Data Service, West Yorkshire)
-- [ ] Display: full-screen kiosk web page with widgets + Mirror's subtitles
+- [x] Display v1: orb that reacts to idle/listening/thinking/speaking + subtitles
+- [ ] Display: weather/calendar/bus widgets around the orb; Chromium kiosk on the Pi
 - [ ] Mirror can answer from real data ("what's my day like?")

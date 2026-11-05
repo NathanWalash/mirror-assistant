@@ -44,12 +44,20 @@ class TTSConfig:
 
 
 @dataclass(frozen=True)
+class DisplayConfig:
+    enabled: bool
+    port: int
+    open_browser: bool
+
+
+@dataclass(frozen=True)
 class Config:
     root: Path
     persona: Path
     llm: LLMConfig
     stt: STTConfig
     tts: TTSConfig
+    display: DisplayConfig
 
 
 def find_repo_root(start: Path | None = None) -> Path:
@@ -80,6 +88,7 @@ def load_config(root: Path | None = None) -> Config:
         raw = deep_merge(raw, yaml.safe_load(local.read_text()) or {})
 
     llm, stt, tts = raw["llm"], raw["stt"], raw["tts"]
+    display = raw.get("display", {})
     return Config(
         root=root,
         persona=root / raw["persona"],
@@ -97,5 +106,10 @@ def load_config(root: Path | None = None) -> Config:
             voices_dir=root / tts["voices_dir"],
             length_scale=float(tts["length_scale"]),
             volume=float(tts["volume"]),
+        ),
+        display=DisplayConfig(
+            enabled=bool(display.get("enabled", True)),
+            port=int(display.get("port", 8765)),
+            open_browser=bool(display.get("open_browser", True)),
         ),
     )

@@ -2,6 +2,8 @@
 
 uv run mirror-talk              # live: just talk, Mirror answers when you pause
 uv run mirror-talk --selftest   # no mic: Piper asks a question, the pipeline answers
+
+While live, the display (glowing orb + subtitles) is served at http://127.0.0.1:8765/.
 """
 
 from __future__ import annotations
@@ -12,11 +14,13 @@ import sys
 import threading
 import time
 import wave
+import webbrowser
 from pathlib import Path
 
 import numpy as np
 
 from mirror_voice.config import Config, load_config
+from mirror_voice.display_server import Broadcaster, DisplayServer, envelope, loudness
 from mirror_voice.llm import Conversation, LLMClient, LLMUnavailable
 from mirror_voice.persona import Persona
 from mirror_voice.sentences import SentenceSplitter
@@ -30,11 +34,13 @@ class Mirror:
         self.llm = LLMClient(cfg.llm)
         self.voice = Voice(cfg.tts)
         self.chat = Conversation(max_messages=cfg.llm.history_turns)
+        self.display = Broadcaster()  # publishing with no page open is a harmless no-op
 
     def respond(self, user_text: str, heard_at: float, record_to: Path | None = None) -> None:
         """Stream the reply into a speaking thread, so speech starts after sentence one."""
         import sounddevice as sd  # imported lazily: needs PortAudio, not needed in tests
 
+        self.display.publish(state="thinking")
         messages = self.chat.build(self.persona.system_prompt())
         messages.append({"role": "user", "content": user_text})
 
@@ -47,11 +53,15 @@ class Mirror:
                 audio, rate = self.voice.synth(sentence)
                 if not first_audio_at:
                     first_audio_at.append(time.time())
+                self.display.publish(state="speaking", say=sentence)
                 if record_to:
                     recorded.append((audio, rate))
-                else:
-                    sd.play(audio, rate)
-                    sd.wait()
+                    continue
+                sd.play(audio, rate)
+                for level in envelope(audio, rate, step=0.05):  # pulse the orb with the voice
+                    self.display.publish(level=level)
+                    time.sleep(0.05)
+                sd.wait()
 
         thread = threading.Thread(target=speaker, daemon=True)
         thread.start()
@@ -71,6 +81,7 @@ class Mirror:
         finally:
             to_speak.put(None)
             thread.join()
+            self.display.publish(state="idle")
         print()
 
         self.chat.add("user", user_text)
@@ -105,6 +116,8 @@ def selftest(mirror: Mirror) -> None:
     pcm = audio.astype(np.float32) / 32768.0
     n = int(len(pcm) * 16000 / rate)
     pcm16k = np.interp(np.linspace(0, len(pcm) - 1, n), np.arange(len(pcm)), pcm)
+    # Pad with silence like a real mic: without it Moonshine garbles the last word.
+    pcm16k = np.concatenate([np.zeros(4000), pcm16k, np.zeros(8000)])
 
     model_path, arch = get_model_for_language("en", stt_arch(mirror.cfg.stt.model))
     stt = Transcriber(model_path, arch)
@@ -120,19 +133,49 @@ def selftest(mirror: Mirror) -> None:
     print(f"Reply audio: {out}")
 
 
+def mic_meter(mirror: Mirror, listening: threading.Event):
+    """Separate light mic stream that only measures loudness, to animate the orb."""
+    import sounddevice as sd
+
+    last = [0.0]
+
+    def callback(indata, frames, t, status) -> None:
+        now = time.time()
+        if listening.is_set() and now - last[0] > 0.05:
+            last[0] = now
+            mirror.display.publish(level=loudness(indata[:, 0]))
+
+    try:
+        stream = sd.InputStream(channels=1, samplerate=16000, blocksize=800, callback=callback)
+        stream.start()
+        return stream
+    except Exception as e:  # the orb just won't react to your voice
+        print(f"(mic level meter unavailable: {e})")
+        return None
+
+
 def live(mirror: Mirror) -> None:
     from moonshine_voice.mic_transcriber import MicTranscriber
 
     heard: queue.Queue[tuple[str, float]] = queue.Queue()
+    listening = threading.Event()
+    listening.set()
+
+    def on_text(text: str) -> None:
+        print(f"\r  (hearing) {text[-70:]:<70}", end="", flush=True)
+        if listening.is_set():
+            mirror.display.publish(state="listening", heard=text)
+
     mic = (
         MicTranscriber()
         .model_arch(stt_arch(mirror.cfg.stt.model))
-        .on_text(lambda t: print(f"\r  (hearing) {t[-70:]:<70}", end="", flush=True))
+        .on_text(on_text)
         .on_line(lambda line: heard.put((line.text.strip(), time.time())))
     )
     print("Loading speech model...")
     mic.load()
     mic.start()
+    meter = mic_meter(mirror, listening)
     print("Listening. Just talk; Mirror answers when you pause. Ctrl+C to quit.\n")
     try:
         while True:
@@ -140,6 +183,8 @@ def live(mirror: Mirror) -> None:
             if len(text) < 2:
                 continue
             print(f"\rYou: {text:<75}")
+            mirror.display.publish(you=text)
+            listening.clear()
             mic.mute(True)  # don't transcribe Mirror's own voice from the speakers
             try:
                 mirror.respond(text, heard_at)
@@ -148,9 +193,12 @@ def live(mirror: Mirror) -> None:
                 while not heard.empty():
                     heard.get_nowait()
                 mic.mute(False)
+                listening.set()
     except KeyboardInterrupt:
         print("\nTa-ra.")
     finally:
+        if meter:
+            meter.close()
         mic.close()
 
 
@@ -165,7 +213,17 @@ def main() -> None:
         mirror.llm.check()
     except LLMUnavailable as e:
         sys.exit(str(e))
-    (selftest if args.selftest else live)(mirror)
+
+    if args.selftest:
+        selftest(mirror)
+        return
+
+    if cfg.display.enabled:
+        server = DisplayServer(cfg.root / "display", cfg.display.port, mirror.display).start()
+        print(f"Display: {server.url}")
+        if cfg.display.open_browser:
+            webbrowser.open(server.url)
+    live(mirror)
 
 
 if __name__ == "__main__":

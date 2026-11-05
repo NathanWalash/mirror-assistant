@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mirror</title>
+<style>
+  :root {
+    --bg: #000;
+    --text: #f2f2f2;
+    --text-dim: #8a8f98;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    cursor: none;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #subs {
+    position: fixed;
+    left: 50%;
+    bottom: 9vh;
+    transform: translateX(-50%);
+    width: min(80vw, 1100px);
+    text-align: center;
+    transition: opacity 1.2s ease;
+  }
+  #you {
+    color: var(--text-dim);
+    font-size: clamp(16px, 2.2vw, 28px);
+    min-height: 1.4em;
+    margin-bottom: 0.6em;
+  }
+  #mirror {
+    font-size: clamp(22px, 3.4vw, 46px);
+    line-height: 1.3;
+    font-weight: 500;
+    min-height: 1.3em;
+  }
+  #hint {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    color: #444;
+    font-size: 13px;
+    transition: opacity 2s ease;
+  }
+  #offline {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    color: #a55;
+    font-size: 13px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="orb"></canvas>
+<div id="subs"><div id="you"></div><div id="mirror"></div></div>
+<div id="hint">click or press F for full screen</div>
+<div id="offline">voice loop not running</div>
+
+<script>
+// ---- Look of each state: colours (hue, sat, light), brightness, swirl speed, wobble ----
+const STATES = {
+  idle:      { hues: [[205, 80, 50], [190, 75, 45], [235, 70, 55]], glow: 0.40, speed: 0.25, wobble: 0.20 },
+  listening: { hues: [[185, 90, 55], [165, 85, 50], [210, 90, 60]], glow: 0.80, speed: 0.60, wobble: 0.30 },
+  thinking:  { hues: [[275, 80, 62], [315, 75, 58], [240, 80, 62]], glow: 0.70, speed: 1.80, wobble: 0.42 },
+  speaking:  { hues: [[25, 95, 58], [330, 85, 60], [200, 90, 60]],  glow: 0.95, speed: 0.90, wobble: 0.34 },
+};
+
+const canvas = document.getElementById("orb");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0;
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = canvas.width = innerWidth * dpr;
+  H = canvas.height = innerHeight * dpr;
+}
+addEventListener("resize", resize);
+resize();
+
+// Current look eases towards the target state's look every frame.
+const cur = JSON.parse(JSON.stringify(STATES.idle));
+let target = STATES.idle;
+let level = 0, targetLevel = 0, lastLevelAt = 0;
+const lerp = (a, b, k) => a + (b - a) * k;
+
+function step(now) {
+  const t = now / 1000;
+  const k = 0.06;
+  cur.glow = lerp(cur.glow, target.glow, k);
+  cur.speed = lerp(cur.speed, target.speed, k);
+  cur.wobble = lerp(cur.wobble, target.wobble, k);
+  cur.hues.forEach((h, i) => h.forEach((v, j) => (h[j] = lerp(v, target.hues[i][j], k))));
+  if (now - lastLevelAt > 150) targetLevel = 0; // loudness fades if events stop
+  level = lerp(level, targetLevel, 0.25);
+
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H * 0.42;
+  const breathe = 1 + 0.04 * Math.sin(t * 1.4);
+  const r = Math.min(W, H) * 0.17 * breathe * (1 + level * 0.35);
+
+  ctx.globalCompositeOperation = "lighter";
+  // soft outer glow, in the coolest colour so it never looks muddy
+  glowCircle(cx, cy, r * 2.2, cur.hues[2], cur.glow * 0.1);
+  // swirling blobs that make up the orb
+  for (let i = 0; i < 6; i++) {
+    const hue = cur.hues[i % 3];
+    const a = t * cur.speed * (1 + i * 0.27) + (i * Math.PI) / 3;
+    const off = r * (cur.wobble + level * 0.25);
+    const x = cx + Math.cos(a) * off;
+    const y = cy + Math.sin(a * 1.3) * off;
+    const rr = r * (0.6 + 0.1 * Math.sin(t * 1.7 + i) + level * 0.2);
+    glowCircle(x, y, rr, hue, cur.glow * 0.5);
+  }
+  // bright core
+  glowCircle(cx, cy, r * 0.45, [0, 0, 100], cur.glow * (0.25 + level * 0.4));
+
+  requestAnimationFrame(step);
+}
+
+function glowCircle(x, y, r, [h, s, l], alpha) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, `hsla(${h}, ${s}%, ${l}%, ${alpha})`);
+  g.addColorStop(0.55, `hsla(${h}, ${s}%, ${l * 0.8}%, ${alpha * 0.45})`);
+  g.addColorStop(1, `hsla(${h}, ${s}%, ${l * 0.5}%, 0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+requestAnimationFrame(step);
+
+// ---- Subtitles ----
+const subs = document.getElementById("subs");
+const you = document.getElementById("you");
+const mirror = document.getElementById("mirror");
+let fadeTimer = null;
+function showSubs() {
+  subs.style.opacity = 1;
+  clearTimeout(fadeTimer);
+}
+function fadeSubsLater() {
+  clearTimeout(fadeTimer);
+  fadeTimer = setTimeout(() => (subs.style.opacity = 0), 12000);
+}
+
+// ---- Live events from the voice loop ----
+const offline = document.getElementById("offline");
+const events = new EventSource("/events");
+// Only complain if the connection stays down; the browser reconnects by itself.
+let offlineTimer = null;
+function online() {
+  clearTimeout(offlineTimer);
+  offlineTimer = null;
+  offline.style.display = "none";
+}
+events.onopen = online;
+events.onerror = () => {
+  offlineTimer ??= setTimeout(() => {
+    offline.style.display = "block";
+    target = STATES.idle;
+  }, 2500);
+};
+events.onmessage = (msg) => {
+  online();
+  const e = JSON.parse(msg.data);
+  if (e.state) {
+    target = STATES[e.state] || STATES.idle;
+    if (e.state === "idle") fadeSubsLater();
+  }
+  if (e.level !== undefined) {
+    targetLevel = e.level;
+    lastLevelAt = performance.now();
+  }
+  if (e.heard !== undefined) {
+    showSubs();
+    you.textContent = e.heard;
+    mirror.textContent = "";
+  }
+  if (e.you !== undefined) {
+    showSubs();
+    you.textContent = e.you;
+    mirror.textContent = "";
+  }
+  if (e.say !== undefined) {
+    showSubs();
+    mirror.textContent = (mirror.textContent + " " + e.say).trim();
+  }
+};
+
+// ---- Full screen ----
+const hint = document.getElementById("hint");
+setTimeout(() => (hint.style.opacity = 0), 6000);
+function fullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+}
+addEventListener("click", fullscreen);
+addEventListener("keydown", (e) => e.key.toLowerCase() === "f" && fullscreen());
+</script>
+</body>
+</html>
