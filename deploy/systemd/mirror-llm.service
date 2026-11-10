@@ -1,0 +1,15 @@
+# Mirror's brain: llama.cpp's llama-server, with port/model/context read from config.yaml.
+# A systemd *user* unit. scripts/pi/install.sh fills in the repo path, installs it to
+# ~/.config/systemd/user/. Edit this template, not the installed copy.
+[Unit]
+Description=Mirror: llama.cpp model server
+# Keep retrying forever (on first boot the network may not be up for the model download).
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=@REPO@/scripts/pi/run-llm.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

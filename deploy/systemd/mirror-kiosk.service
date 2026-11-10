@@ -1,0 +1,14 @@
+# Chromium in kiosk mode showing Mirror's display. A systemd *user* unit that is NOT
+# enabled at boot: the desktop (labwc) starts it from ~/.config/labwc/autostart once
+# Wayland is up, after handing WAYLAND_DISPLAY etc. to the user manager.
+# scripts/pi/install.sh fills in the repo path and installs it to ~/.config/systemd/user/.
+[Unit]
+Description=Mirror: Chromium kiosk showing the display
+After=mirror-voice.service
+StartLimitIntervalSec=0
+
+[Service]
+# kiosk.sh waits for the display server, then runs Chromium.
+ExecStart=@REPO@/scripts/pi/kiosk.sh
+Restart=always
+RestartSec=5

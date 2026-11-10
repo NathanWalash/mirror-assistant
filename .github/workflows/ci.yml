@@ -23,4 +23,8 @@ jobs:
       - name: Tests
         run: uv run pytest
       - name: Shell scripts
-        run: bash -n scripts/*.sh
+        # `bash -n a.sh b.sh` only checks a.sh, so check each file. shellcheck is
+        # preinstalled on GitHub's Ubuntu runners.
+        run: |
+          for f in scripts/*.sh scripts/pi/*.sh; do bash -n "$f"; done
+          shellcheck scripts/*.sh scripts/pi/*.sh

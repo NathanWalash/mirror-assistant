@@ -133,6 +133,7 @@ recurring events with exceptions, moved occurrences, Outlook's Windows time-zone
 and the clocks changing are exactly what goes wrong in a hand-written parser, and these
 two libraries are well maintained and pure Python (fine on the Pi). The links are
 secrets, so they live in `config.yaml` only and are redacted from every error and log line.
+
 **Buses: Bus Open Data Service (BODS), timetable + live positions, worked out ourselves.**
 BODS is the DfT's free, legally-mandated feed for every English local bus, but it has no
 "next departures at stop X" call: it publishes timetables (TransXChange, and GTFS per
@@ -191,6 +192,14 @@ them (all of it for "give me a rundown").
 - *Still the weak spot:* the 3B model sometimes garbles the details it's given (wrong
   bus of two, "morning" in the afternoon). Better models or a fine-tune fix that; the
   data it's handed is right.
+
+## On the Pi: systemd user services, deployed from the Mac with rsync
+Model server and voice loop are systemd *user* services (audio and the screen belong to
+the user's session; no sudo needed to restart), started at boot via lingering. The
+desktop's autostart starts Chromium in kiosk mode. llama.cpp is built on the Pi (tuned
+for its Cortex-A76, no BLAS) because the official arm64 binaries need a newer glibc
+than Raspberry Pi OS Bookworm. `deploy.sh` rsyncs the working tree, private files included.
+Details and sources in [pi.md](pi.md).
 
 ## Personality lives in a plain Markdown file
 Re-read on every reply, so we can iterate without restarts. The shared template is
