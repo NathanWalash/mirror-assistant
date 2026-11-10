@@ -34,7 +34,7 @@ def main() -> None:
         print(json.dumps(module.fetch(dict(wc.settings)), indent=2, ensure_ascii=False))
         return
 
-    broadcaster = Broadcaster()
+    broadcaster = Broadcaster(cfg.display.page_settings())
     server = DisplayServer(cfg.root / "display", cfg.display.port, broadcaster).start()
     hub = Hub(cfg.widgets, broadcaster.publish).start()
     print(f"Display: {server.url}  (widgets: {', '.join(hub.refreshers) or 'none'})", flush=True)

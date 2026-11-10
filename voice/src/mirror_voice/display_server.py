@@ -11,6 +11,8 @@ Events are small JSON objects, e.g.:
     {"say": "one sentence Mirror is speaking"}
     {"widget": "weather", "status": "ok", "data": {...}, "updated": 1762770000.0}
                                 # from the hub, see mirror_voice/hub/__init__.py
+    {"display": {"night": {"start": "00:00", "end": "06:30", "brightness": 0.15}}}
+                                # page settings from config.yaml, sent once on connect
 """
 
 from __future__ import annotations
@@ -28,16 +30,20 @@ import numpy as np
 class Broadcaster:
     """Fan events out to every connected page."""
 
-    def __init__(self) -> None:
+    def __init__(self, display: dict[str, object] | None = None) -> None:
         self._clients: set[queue.Queue[str]] = set()
         self._lock = threading.Lock()
         self._last_state = {"state": "idle"}
         self._last_widgets: dict[str, str] = {}  # widget name -> its latest event
+        # Page settings from config.yaml `display:` (e.g. night dimming), sent on connect.
+        self._display = json.dumps({"display": display}) if display is not None else None
 
     def subscribe(self) -> queue.Queue[str]:
         q: queue.Queue[str] = queue.Queue(maxsize=256)
-        # New pages start in the right state, with every widget already filled in.
+        # New pages start in the right state and settings, with every widget filled in.
         q.put_nowait(json.dumps(self._last_state))
+        if self._display:
+            q.put_nowait(self._display)
         with self._lock:
             for data in self._last_widgets.values():
                 q.put_nowait(data)

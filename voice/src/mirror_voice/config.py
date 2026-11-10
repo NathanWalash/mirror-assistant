@@ -45,10 +45,56 @@ class TTSConfig:
 
 
 @dataclass(frozen=True)
+class NightConfig:
+    """Dim the whole screen between `start` and `end` (local "HH:MM", may span midnight)."""
+
+    start: str = "00:00"
+    end: str = "06:30"
+    brightness: float = 0.15  # 0 = black, 1 = no dimming
+
+    @classmethod
+    def from_raw(cls, raw: dict[str, Any] | bool | None) -> NightConfig | None:
+        if raw is False:
+            return None  # `night: false` turns dimming off
+        raw = raw if isinstance(raw, dict) else {}
+        night = cls(
+            start=_hhmm(raw.get("start", cls.start)),
+            end=_hhmm(raw.get("end", cls.end)),
+            brightness=min(1.0, max(0.0, float(raw.get("brightness", cls.brightness)))),
+        )
+        return None if night.brightness >= 1 or night.start == night.end else night
+
+
+def _hhmm(value: object) -> str:
+    """ "6:30" or "06:30" -> "06:30"."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        # YAML 1.1 reads an unquoted 06:30 as base-60 minutes (390), so undo that.
+        hours, minutes = divmod(value, 60)
+    else:
+        try:
+            hours, minutes = (int(part) for part in str(value).strip().split(":"))
+        except ValueError:
+            raise ValueError(f'display.night: times look like "06:30", got {value!r}') from None
+    if not (0 <= hours <= 23 and 0 <= minutes <= 59):
+        raise ValueError(f'display.night: times look like "06:30", got {value!r}')
+    return f"{hours:02d}:{minutes:02d}"
+
+
+@dataclass(frozen=True)
 class DisplayConfig:
     enabled: bool
     port: int
     open_browser: bool
+    night: NightConfig | None = NightConfig()
+
+    def page_settings(self) -> dict[str, Any]:
+        """What the page itself needs to know, sent when it connects."""
+        night = self.night
+        return {
+            "night": None
+            if night is None
+            else {"start": night.start, "end": night.end, "brightness": night.brightness}
+        }
 
 
 @dataclass(frozen=True)
@@ -130,6 +176,7 @@ def load_config(root: Path | None = None) -> Config:
             enabled=bool(display.get("enabled", True)),
             port=int(display.get("port", 8765)),
             open_browser=bool(display.get("open_browser", True)),
+            night=NightConfig.from_raw(display.get("night")),
         ),
         widgets={
             name: WidgetConfig.from_raw(block) for name, block in (raw.get("widgets") or {}).items()

@@ -23,23 +23,45 @@
     return `${minutes} min`;
   }
 
-  function draw(body, data) {
-    const { el } = Widgets;
-    const now = Date.now() / 1000;
-    // Drop buses that have gone since the last refresh (a minute's grace for live ones).
-    const buses = data.departures.filter((b) => b.expected > now - (b.live ? 60 : 0));
+  // Drop buses that have gone since the last refresh (a minute's grace for live ones).
+  const notGone = (list, now) => list.filter((b) => b.expected > now - (b.live ? 60 : 0));
 
-    const rows = el("div", "bus-rows");
+  function rowsFor(buses, now, rows = Widgets.el("div", "bus-rows")) {
+    const { el } = Widgets;
     for (const b of buses) {
       const when = el("div", "bus-when medium" + (b.live ? "" : " dim"));
       if (b.live) when.append(liveIcon());
       when.append(document.createTextNode(due(b, now)));
       rows.append(el("div", "bus-route medium", b.route), el("div", "bus-dest small dim", b.destination), when);
     }
+    return rows;
+  }
 
+  function draw(body, data) {
+    const { el } = Widgets;
+    const now = Date.now() / 1000;
+    const none = `No buses in the next ${data.horizon_minutes} min`;
     const children = [el("div", "small dim", data.stop)];
-    if (buses.length) children.push(rows);
-    else children.push(el("div", "small", `No buses in the next ${data.horizon_minutes} min`));
+    let buses;
+
+    if (data.groups) {
+      // One heading per direction ("Town", "Headingley"), each with its next few buses.
+      // All in one grid so the columns line up across groups.
+      buses = [];
+      const rows = el("div", "bus-rows");
+      for (const g of data.groups) {
+        const list = notGone(g.departures, now);
+        buses.push(...list);
+        rows.append(el("div", "small bus-heading", g.label));
+        if (list.length) rowsFor(list, now, rows);
+        else rows.append(el("div", "small dim bus-none", none));
+      }
+      children.push(rows);
+    } else {
+      buses = notGone(data.departures, now);
+      children.push(buses.length ? rowsFor(buses, now) : el("div", "small", none));
+    }
+
     if (buses.length && !buses.some((b) => b.live)) {
       children.push(el("div", "tiny dim", data.live_feed ? "Timetable times" : "Timetable times, no live data"));
     }

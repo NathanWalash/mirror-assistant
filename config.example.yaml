@@ -44,6 +44,13 @@ display:
   enabled: true
   port: 8765
   open_browser: true   # open it automatically in your browser
+  # Dim the whole screen at night so the mirror doesn't light up the room. Times are the
+  # screen's local time and may span midnight. brightness: 0 = black, 1 = no dimming.
+  # Set `night: false` to turn it off.
+  night:
+    start: "00:00"
+    end: "06:30"
+    brightness: 0.15
 
 widgets:
   # Info shown around the orb. Each widget has `enabled` and `refresh_minutes`
@@ -108,3 +115,13 @@ widgets:
     horizon_minutes: 90  # how far ahead to look
     name: ""             # label on the mirror; empty = the stop's name
     region: yorkshire    # which BODS GTFS region file holds your stop
+    # Optional: split your stops by direction, each with its own heading. The groups'
+    # stops replace `stops` above. Codes here are placeholders, not real stops:
+    #
+    #   groups:
+    #     - label: Town
+    #       stops: ["450000001"]
+    #     - label: Out of town
+    #       stops: ["450000002", "450000003"]
+    #       max_departures: 2   # optional, per group
+    max_per_group: 3     # buses shown under each group heading

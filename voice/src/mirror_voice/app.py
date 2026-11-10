@@ -40,7 +40,8 @@ class Mirror:
         self.llm = LLMClient(cfg.llm)
         self.voice = Voice(cfg.tts)
         self.chat = Conversation(max_messages=cfg.llm.history_turns)
-        self.display = Broadcaster()  # publishing with no page open is a harmless no-op
+        # Publishing with no page open is a harmless no-op.
+        self.display = Broadcaster(cfg.display.page_settings())
 
     def respond(self, user_text: str, heard_at: float, record_to: Path | None = None) -> None:
         """Stream the reply into a speaking thread, so speech starts after sentence one."""

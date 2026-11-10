@@ -23,6 +23,11 @@ Settings (under `widgets.bus` in config.yaml):
     name             label for the stop (default: its name in the timetable)
     region           BODS GTFS region file (default "yorkshire")
     live             use live positions when a key is set (default true)
+    groups           optional: split the stops by direction, each with its own heading,
+                     e.g. [{label: "Town", stops: [...]}, {label: "Out", stops: [...]}].
+                     When set, the groups' stops replace `stops`.
+    max_per_group    buses shown per group (default 3; a group can set its own
+                     `max_departures`)
 """
 
 from __future__ import annotations
@@ -58,6 +63,7 @@ GONE = -1.0  # estimate(): the bus has already passed the stop
 
 
 def fetch(settings: dict[str, Any]) -> dict[str, Any]:
+    settings = with_group_stops(settings)
     root = find_repo_root()
     now = _now()
     cache_dir = Path(settings.get("cache_dir") or root / "cache" / "bus")
@@ -93,6 +99,30 @@ def fetch_vehicles(key: str, bbox: tuple[float, float, float, float]) -> list[gt
 
 
 # ---- Pure from here down: no network, testable with fixtures ----
+
+
+def groups(settings: dict[str, Any]) -> list[dict[str, Any]]:
+    """The configured direction groups, checked, or [] if there are none."""
+    out = []
+    for i, g in enumerate(settings.get("groups") or []):
+        if not isinstance(g, dict) or not g.get("stops"):
+            raise ValueError(f"bus group {i + 1} needs a list of stops")
+        out.append(
+            {
+                "label": str(g.get("label") or f"Group {i + 1}"),
+                "stops": [str(s) for s in g["stops"]],
+                "max": int(g.get("max_departures", settings.get("max_per_group", 3))),
+            }
+        )
+    return out
+
+
+def with_group_stops(settings: dict[str, Any]) -> dict[str, Any]:
+    """Settings whose `stops` are every grouped stop, when groups are configured."""
+    gs = groups(settings)
+    if not gs:
+        return settings
+    return {**settings, "stops": list(dict.fromkeys(s for g in gs for s in g["stops"]))}
 
 
 def _midnight(day: str) -> datetime:
@@ -222,30 +252,50 @@ def departures(
         rows.append((expected, scheduled, live, c))
     rows.sort(key=lambda r: r[0])
 
-    out = []
-    for expected, scheduled, live, c in rows[: int(settings.get("max_departures", 5))]:
+    def row(expected: float, scheduled: float, live: bool, c: dict) -> dict[str, Any]:
         minutes = max(0, int((expected - now_ts) // 60))
-        out.append(
-            {
-                "route": c["trip"]["route"],
-                "destination": c["trip"]["headsign"],
-                "expected": round(expected),
-                "time": datetime.fromtimestamp(expected, TZ).strftime("%H:%M"),
-                "scheduled_time": c["scheduled"].strftime("%H:%M"),
-                "minutes": minutes,
-                "due": when_text(minutes, expected),
-                "live": live,
-                "late_minutes": round((expected - scheduled) / 60) if live else None,
-            }
-        )
-    return {
+        return {
+            "route": c["trip"]["route"],
+            "destination": c["trip"]["headsign"],
+            "expected": round(expected),
+            "time": datetime.fromtimestamp(expected, TZ).strftime("%H:%M"),
+            "scheduled_time": c["scheduled"].strftime("%H:%M"),
+            "minutes": minutes,
+            "due": when_text(minutes, expected),
+            "live": live,
+            "late_minutes": round((expected - scheduled) / 60) if live else None,
+        }
+
+    horizon = int(settings.get("horizon_minutes", 90))
+    out = [row(*r) for r in rows[: int(settings.get("max_departures", 5))]]
+    data: dict[str, Any] = {
         "stop": settings.get("name") or stop_name(timetable),
         "departures": out,
         "live_feed": vehicles is not None,
-        "horizon_minutes": int(settings.get("horizon_minutes", 90)),
-        "summary": summary(out, int(settings.get("horizon_minutes", 90))),
+        "horizon_minutes": horizon,
+        "summary": summary(out, horizon),
         "timetable": timetable.get("feed_version", ""),
     }
+
+    gs = groups(settings)
+    if gs:
+        data["groups"] = []
+        for g in gs:
+            wanted, seen, picked = set(g["stops"]), set(), []
+            for r in rows:
+                c = r[3]
+                key = (c["trip"]["id"], c["day"])  # one bus calling at two of the group's stops
+                if c["trip"]["calls"][c["at"]][0] not in wanted or key in seen:
+                    continue
+                seen.add(key)
+                picked.append(row(*r))
+                if len(picked) >= g["max"]:
+                    break
+            data["groups"].append({"label": g["label"], "departures": picked})
+        data["summary"] = "; ".join(
+            f"{g['label']}: {group_summary(g['departures'], horizon)}" for g in data["groups"]
+        )
+    return data
 
 
 def when_text(minutes: int, expected: float) -> str:
@@ -266,12 +316,21 @@ def summary(rows: list[dict[str, Any]], horizon: int) -> str:
     if not rows:
         return f"No buses in the next {horizon} minutes"
     r = rows[0]
-    if r["minutes"] <= 0:
-        when = "due now"
-    elif r["minutes"] > MINUTES_UNTIL_CLOCK:
-        when = f"at {r['time']}"
-    else:
-        when = f"in {r['minutes']} minute{'s' if r['minutes'] != 1 else ''}"
     to = f" to {r['destination']}" if r["destination"] else ""
     source = "live" if r["live"] else "timetabled"
-    return f"Next {r['route']}{to} {when} ({source})"
+    return f"Next {r['route']}{to} {_spoken_when(r)} ({source})"
+
+
+def group_summary(rows: list[dict[str, Any]], horizon: int) -> str:
+    """The short form used per direction, e.g. "next 33 in 4 minutes"."""
+    if not rows:
+        return f"no buses in the next {horizon} minutes"
+    return f"next {rows[0]['route']} {_spoken_when(rows[0])}"
+
+
+def _spoken_when(r: dict[str, Any]) -> str:
+    if r["minutes"] <= 0:
+        return "due now"
+    if r["minutes"] > MINUTES_UNTIL_CLOCK:
+        return f"at {r['time']}"
+    return f"in {r['minutes']} minute{'s' if r['minutes'] != 1 else ''}"
