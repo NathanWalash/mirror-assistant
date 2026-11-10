@@ -25,3 +25,6 @@ config.yaml
 # scripts/setup.sh copies mirror.example.md -> mirror.md for you to edit privately.
 personality/personas/*.md
 !personality/personas/*.example.md
+
+# Personality eval output: replies can quote the private persona.
+personality/eval/results/

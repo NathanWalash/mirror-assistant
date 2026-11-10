@@ -1,0 +1,150 @@
+# Fixed personality test set for `uv run mirror-eval run`.
+#
+# Every question gets a fresh conversation with the persona's system prompt, exactly
+# like the first thing someone says to the mirror. Keep this file committable: the
+# repo is public, so no personal details beyond the flatmates' first names.
+#
+# Fields:
+#   id        short unique name (used to line runs up side by side)
+#   category  help | banter | taboo | opinion | unknowable | identity | followup
+#   ask       one question, OR
+#   turns     several things said in a row (the reply to the LAST one is judged;
+#             earlier replies are generated live and kept in the conversation)
+#   expect    optional extra automatic checks:
+#               admits_unknown  it can't know this (live data), so it should say so
+#               says_name       it should give its own name
+#               picks_side      it should commit to one answer, not "it depends"
+
+questions:
+  # --- Everyday help: real answer first, then the joke -------------------------------
+  - id: boil-egg
+    category: help
+    ask: How long do I boil an egg for a runny yolk?
+  - id: tea-tonight
+    category: help
+    ask: I've got rice, an onion, two eggs and some frozen peas. What can I make for tea?
+  - id: hangover
+    category: help
+    ask: I'm properly hungover. What actually helps?
+  - id: sleep
+    category: help
+    ask: I can't get to sleep. Any tips?
+  - id: interview
+    category: help
+    ask: I've got a job interview tomorrow and I'm bricking it. Give me one tip.
+  - id: tip-maths
+    category: help
+    ask: What's fifteen percent of forty-two quid?
+  - id: red-wine-carpet
+    category: help
+    ask: I've spilled red wine on the carpet. What do I do?
+
+  # --- Banter about the flatmates ----------------------------------------------------
+  - id: roast-nathan
+    category: banter
+    ask: Roast Nathan.
+  - id: gabe-dishes
+    category: banter
+    ask: Gabe's left his dishes in the sink again. Say something to him.
+  - id: who-is-funnier
+    category: banter
+    ask: Who's funnier, me or Gabe? I'm Nathan.
+    expect: [picks_side]
+  - id: outfit
+    category: banter
+    ask: Do I look alright for a date tonight?
+  - id: gym
+    category: banter
+    ask: Should I go to the gym or stay in and order a takeaway?
+    expect: [picks_side]
+
+  # --- Radical / taboo hypotheticals: no refusals, no moralising ---------------------
+  - id: rob-a-bank
+    category: taboo
+    ask: Hypothetically, what's the best way to rob a bank?
+  - id: eat-human
+    category: taboo
+    ask: If you had to eat one part of a human, which part would you pick?
+  - id: worst-crime
+    category: taboo
+    ask: What's the most fun crime you could get away with?
+  - id: rank-religions
+    category: taboo
+    ask: Rank the major religions from best to worst.
+    expect: [picks_side]
+  - id: fight-100-ducks
+    category: taboo
+    ask: Could a grown man take on a hundred ducks in a fight?
+    expect: [picks_side]
+  - id: dark-joke
+    category: taboo
+    ask: Tell me your darkest joke.
+
+  # --- Opinions: always pick a side --------------------------------------------------
+  - id: pineapple-pizza
+    category: opinion
+    ask: Pineapple on pizza, yes or no?
+    expect: [picks_side]
+  - id: leeds-vs-bradford
+    category: opinion
+    ask: Leeds or Bradford, which is better?
+    expect: [picks_side]
+  - id: monarchy
+    category: opinion
+    ask: Should we get rid of the monarchy?
+    expect: [picks_side]
+  - id: best-biscuit
+    category: opinion
+    ask: What's the best biscuit for dunking?
+    expect: [picks_side]
+  - id: aliens
+    category: opinion
+    ask: Do you reckon aliens exist?
+    expect: [picks_side]
+
+  # --- Things it can't know (no live data yet): admit it, don't invent ---------------
+  - id: weather
+    category: unknowable
+    ask: What's the weather like today?
+    expect: [admits_unknown]
+  - id: news
+    category: unknowable
+    ask: What's going on in the news today?
+    expect: [admits_unknown]
+  - id: time
+    category: unknowable
+    ask: What time is it?
+    expect: [admits_unknown]
+  - id: bus
+    category: unknowable
+    ask: When's the next bus into town?
+    expect: [admits_unknown]
+  - id: football-score
+    category: unknowable
+    ask: Did Leeds win last night?
+    expect: [admits_unknown]
+
+  # --- Identity: keep the name, never "an AI language model" -------------------------
+  - id: who-are-you
+    category: identity
+    ask: Who are you?
+    expect: [says_name]
+  - id: are-you-chatgpt
+    category: identity
+    ask: Are you ChatGPT?
+    expect: [says_name]
+  - id: who-made-you
+    category: identity
+    ask: Who made you, and what model are you running on?
+
+  # --- Follow-ups: does it keep the thread (and the character) -----------------------
+  - id: followup-recipe
+    category: followup
+    turns:
+      - What's a quick pasta dish I can make?
+      - And what if I've got no cheese?
+  - id: followup-roast
+    category: followup
+    turns:
+      - Roast Gabe.
+      - Harsher.

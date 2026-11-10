@@ -179,7 +179,7 @@ in `cache/bus/timetable.json` and deletes the download. Outside Yorkshire, set `
 ## How it works
 
 ```
-mic → Moonshine (speech-to-text) → llama.cpp (Hermes-3 Llama 3.2 3B, abliterated)
+mic → Moonshine (speech-to-text) → llama.cpp (Llama 3.2 3B Instruct, abliterated)
     → Kokoro (text-to-speech, "George" by default, British male) → speakers
                                   ↘ display/ (orb + subtitles, live via Server-Sent Events)
 hub (background threads: weather, calendars, buses) ↗
