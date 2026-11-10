@@ -31,7 +31,10 @@ def fetch(settings: dict[str, Any]) -> dict[str, Any]:
 - Keep the network call thin and put the work in a pure `parse(payload, settings)` you can
   test with a saved response in `voice/tests/fixtures/` (no network in tests).
 - Return what the screen needs, already tidied (rounded numbers, `"14:00"` strings,
-  a one-line summary). Mirror will later read the same data to answer questions.
+  a one-line summary). Mirror reads the same data to answer questions: to let it,
+  add a short line builder and some keywords for your widget in
+  `voice/src/mirror_voice/context.py` (it gets `Hub.board()`: each widget's data,
+  status and last update).
 - Keep secrets (calendar links, API keys) out of the returned data and error messages.
   The same goes for personal details you only need to work something out. For example,
   the calendar uses owners' email addresses to find their RSVP but only sends the result

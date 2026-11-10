@@ -21,6 +21,8 @@ Settings (under `widgets.bus` in config.yaml):
     walk_minutes     hide buses leaving sooner than this (default 0)
     horizon_minutes  how far ahead to look (default 90)
     name             label for the stop (default: its name in the timetable)
+    town             words in a destination that mean it goes into town, e.g. ["Leeds"],
+                     so "when's the next bus into town?" gets the right ones (default none)
     region           BODS GTFS region file (default "yorkshire")
     live             use live positions when a key is set (default true)
     groups           optional: split the stops by direction, each with its own heading,
@@ -34,6 +36,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta
@@ -230,6 +233,7 @@ def departures(
     now_ts = now.timestamp()
     by_trip = {v.trip_id: v for v in vehicles or []}
     walk = float(settings.get("walk_minutes", 0)) * 60
+    town = [str(w).casefold() for w in settings.get("town") or [] if str(w).strip()]
     rows = []
     for c in candidates:
         scheduled = c["scheduled"].timestamp()
@@ -264,6 +268,7 @@ def departures(
             "due": when_text(minutes, expected),
             "live": live,
             "late_minutes": round((expected - scheduled) / 60) if live else None,
+            "into_town": goes_into_town(c["trip"]["headsign"], town),
         }
 
     horizon = int(settings.get("horizon_minutes", 90))
@@ -296,6 +301,12 @@ def departures(
             f"{g['label']}: {group_summary(g['departures'], horizon)}" for g in data["groups"]
         )
     return data
+
+
+def goes_into_town(destination: str, town: list[str]) -> bool:
+    """Whether a destination contains one of the `town` words (whole words, any case)."""
+    words = re.findall(r"\w+", destination.casefold())
+    return any(all(p in words for p in t.split()) for t in town)
 
 
 def when_text(minutes: int, expected: float) -> str:

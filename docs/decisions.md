@@ -107,6 +107,34 @@ documented public API; bustimes.org is a great site (and how to find your stop c
 but scraping it isn't ours to do; paid aggregators (TransportAPI) cost money for what
 BODS gives free.
 
+## Answering from the board: keyword routing, not tool calls
+Mirror answers "do I need a coat?" or "what's my day like?" from the hub's live data
+(`voice/src/mirror_voice/context.py`). We don't give the model tools. Instead, cheap
+keyword routing looks at the question and adds a short `[Live info]` note under it: the
+time, plus the weather, buses or today's and tomorrow's calendar if the question is about
+them (all of it for "give me a rundown").
+- *Why not tool calls:* a 3B model picks and fills in tools unreliably, and a tool call
+  means a second model pass (call, result, then answer) that roughly doubles the wait
+  on the Pi. Keyword lists are predictable, testable without a model, and easy to extend.
+  They miss some phrasings; the note always has the time, and a miss just means Mirror
+  says it doesn't know.
+- *Why so short:* the Pi reads the prompt at only tens of tokens a second, so every
+  line costs. A weather or bus question adds ~50-70 tokens, a calendar one ~80, a full
+  briefing ~160; "tell me a joke" adds ~17 (the time). Calendar is today and tomorrow
+  only, at most four events a day, titles cut at 40 characters.
+- *Why at the end:* llama.cpp reuses its cache for the longest unchanged start of the
+  prompt. The persona stays byte-identical at the top and the history is stored without
+  the notes, so only the new question (and the tail of the last turn) is read afresh.
+  Measured on a Mac with Llama 3.2 3B: 260 of the prompt's tokens came from cache on
+  every turn, and only 26-170 were read new.
+- *Never invented:* only data the hub actually fetched goes in. A failing widget is
+  "(not updated since 14:05)" or "unavailable"; a named flatmate without a linked
+  calendar gets "no calendar for Sam", not someone else's plans. Route numbers and
+  destinations come from the bus data itself, so no place names are hard-coded here.
+- *Still the weak spot:* the 3B model sometimes garbles the details it's given (wrong
+  bus of two, "morning" in the afternoon). Better models or a fine-tune fix that; the
+  data it's handed is right.
+
 ## Personality lives in a plain Markdown file
 Re-read on every reply, so we can iterate without restarts. The shared template is
 committed and personal copies are git-ignored (the repo is public).

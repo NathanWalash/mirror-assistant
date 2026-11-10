@@ -159,6 +159,22 @@ def test_route_filter_walk_time_and_limit(timetable):
     assert len(show(timetable, at(10, 5), max_departures=1)["departures"]) == 1
 
 
+def test_town_setting_marks_buses_into_town(timetable):
+    rows = show(timetable, at(10, 5), town=["leeds"])["departures"]
+    assert [(r["destination"], r["into_town"]) for r in rows] == [
+        ("Leeds Bus Stn", True),
+        ("Seacroft", False),
+        ("Extra", False),
+    ]
+    assert not any(r["into_town"] for r in show(timetable, at(10, 5))["departures"])
+
+
+def test_goes_into_town_matches_whole_words():
+    assert bus.goes_into_town("Leeds City Bus Stn", ["city bus"])
+    assert not bus.goes_into_town("Leedsville", ["leeds"])
+    assert not bus.goes_into_town("Leeds", [])
+
+
 def test_bus_past_midnight_comes_from_the_previous_service_day(timetable):
     data = show(timetable, at(0, 15, day=TUESDAY + timedelta(days=1)))
     [night] = data["departures"]
