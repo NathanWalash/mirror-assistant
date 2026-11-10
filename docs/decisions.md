@@ -10,12 +10,69 @@ OpenAI-compatible API, so pointing at a bigger machine later is a config change,
 - **Size 3–4B, 4-bit quantised (Q4_K_M).** Pi 5 generation is limited by memory bandwidth:
   roughly 4–6 tokens/sec at 3B. Fine for short spoken replies streamed sentence by
   sentence; 7–8B is too slow to chat with.
-- **Current model: Hermes-3 Llama 3.2 3B, abliterated.** Hermes is tuned for playing a
-  character; abliteration removes refusals. A quick, ready-made pick to get going.
+- **Current model: Llama 3.2 3B Instruct, abliterated** (huihui-ai's, quantised by
+  mradermacher). Won the bake-off below; abliteration removes refusals. We started on
+  Hermes-3 Llama 3.2 3B abliterated, which played the character but rambled.
 - **llama.cpp over Ollama:** reported 10–20% faster on the Pi, and the same files run on Mac.
 - **Next:** abliterate the newest small Qwen ourselves with
   [Heretic](https://github.com/p-e-w/heretic) (no training needed, ~30–40 min on a rented
   GPU; can also reduce "assistant slop"), then LoRA fine-tune the personality in.
+
+## Model bake-off (personality eval)
+`uv run mirror-eval` asks 33 fixed questions (`personality/eval/questions.yaml`: everyday
+help, banter, taboo hypotheticals, pick-a-side opinions, live info it can't know,
+identity, follow-ups), each in a fresh conversation with the real persona, and flags
+mechanical failures. `scripts/eval.sh <repo:quant> <label>` runs one model on port 8090;
+`mirror-eval compare` puts runs side by side in HTML for judging the jokes by eye.
+
+All Q4_K_M on an M2 Max, temperature 0.8, 150-token cap, private persona with the
+length/"can't know"/examples tweaks (the same ideas now in `mirror.example.md`):
+
+| Model (abliterated) | Size | Tok/s (M2 Max) | Avg words | >3 sentences | Hit cap | Lists/* | Invents live info | Refusals | Clean /33 |
+|---|---|---|---|---|---|---|---|---|---|
+| **Llama 3.2 3B Instruct** (huihui-ai) | 2.0 GB | 116 | 34 | 2 | 0 | 0 | 1/5 | 0 | **29** |
+| Gemma 3 4B it (mlabonne) | 2.3 GB | 92 | 22 | 6 | 0 | 0 | 0/5 | 0 | 27 |
+| Qwen3.5 4B (huihui-ai) | 2.5 GB | 80 | 31 | 2 | 0 | 0 | 1/5 | 0 | 28 |
+| Qwen3 4B Instruct 2507 (huihui-ai) | 2.3 GB | 92 | 36 | 9 | 0 | 2 | 0/5 | 0 | 23 |
+| Hermes-3 Llama 3.2 3B (previous) | 1.9 GB | 109 | 54 | 23 | 1 | 3 | 1/5 | 0 | 8 |
+
+With the persona as it was before the tweaks, every model invented weather, bus times
+and football scores, and Hermes / Qwen3 2507 hit the token cap on 12 / 18 of 33 replies
+(markdown lists, `*emphasis*`). Prompt tweaks mattered more than model choice: see the
+"Persona" section below.
+
+- **Llama 3.2 3B wins**: tidiest replies, the fastest, swears and picks sides, and
+  mostly gets the actual help right (eggs 6–7 minutes; 15% of 42 was 6.30 with the
+  tweaked persona, "fifty-six quid" without). The same size and
+  architecture as Hermes, so no Pi speed cost. Jokes are hit and miss.
+- **Gemma 3 4B is the funniest** by ear (crude and punchy: "I'm a mirror, not the
+  fucking BBC"), but 4B is ~30% slower on the Pi, it gets sums wrong, leans on tics
+  ("Right then…", badgers), and sometimes dodges the question with a joke. It uses
+  sliding-window attention, so **run it with `--swa-full`** or llama.cpp re-reads the
+  whole system prompt every reply (first token 0.41s → 0.06s on the Mac; on the Pi that's
+  roughly 10s+ vs instant). Worth a listen-test against Llama.
+- **Qwen3 4B Instruct 2507** is the non-thinking release, so no `/no_think` needed.
+  (The original hybrid Qwen3 and Qwen3.5 need thinking switched off: `--reasoning off`
+  on llama-server, or `mirror-eval run --no-think`, which sends
+  `chat_template_kwargs: {"enable_thinking": false}`.) Whimsical rather than crude.
+- **Qwen3.5 4B**: obeys length well but bland and repetitive, and copies the example
+  format ("Mirror: …").
+- **Hermes-3 3B**: ignores the length rule whatever the prompt, recites its instructions
+  as a list when asked "who are you", and makes things up ("created by a company called
+  Megha").
+- **Pi speed** (guess, ~10–20x slower than the M2 Max): a 3B at ~5–8 tokens/sec turns
+  Llama's ~40-token replies into 5–8s of generation, with the first sentence spoken after
+  ~2s. Hermes' ~110-token rambles would take 15–20s. Short replies are the biggest
+  latency win on the Pi. Keep the system prompt prefix cached (it's ~500 tokens).
+- One sample per question at a fixed seed, so treat single replies as anecdotes; a
+  second seed for Llama and Gemma gave similar numbers (28 and 25 clean).
+
+## Persona: rules first, then example exchanges
+Small models follow examples far better than rules. What helped every model:
+the length rule at the very top ("one to three short sentences, under 40 words"), an
+explicit "you have no internet, clock or window" list of things it can't know, and a few
+`User:`/`Mirror:` example exchanges (kept off the eval questions so the eval stays fair).
+Hermes was the exception: it got wordier.
 
 ## Speech-to-text: Moonshine (`small_streaming`)
 Built for edge devices and transcribes while you talk. Its own Pi 5 benchmarks: Tiny
