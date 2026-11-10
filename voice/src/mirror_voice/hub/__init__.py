@@ -24,13 +24,14 @@ from types import ModuleType
 from typing import Any
 
 from mirror_voice.config import WidgetConfig
-from mirror_voice.hub import weather
+from mirror_voice.hub import calendar, weather
 
 log = logging.getLogger(__name__)
 
 # name in config.yaml `widgets:` -> module with DEFAULT_REFRESH_MINUTES and fetch(settings)
 WIDGETS: dict[str, ModuleType] = {
     "weather": weather,
+    "calendar": calendar,
 }
 
 RETRY_SECONDS = 60.0  # after a failure, try again this soon (or at the normal interval if sooner)

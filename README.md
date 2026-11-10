@@ -4,8 +4,8 @@ An old TV + a Raspberry Pi 5, turned into a smart mirror for our flat: weather, 
 buses, and **Mirror**, a sarcastic Yorkshire assistant you can talk to out loud.
 Everything runs locally, with no cloud.
 
-**Status:** voice loop + the display (a glowing orb with subtitles, a clock and the
-weather around it) work on a Mac. Calendars, buses and Pi deployment come later.
+**Status:** voice loop + the display (a glowing orb with subtitles, a clock, the weather
+and both our calendars around it) work on a Mac. Buses and Pi deployment come later.
 
 ## Quickstart (macOS)
 
@@ -21,6 +21,7 @@ A browser tab opens with **Mirror's face**: a glowing orb that breathes when idl
 up when it hears you, swirls while thinking, and pulses as it talks, with subtitles.
 Around it sit the time and date and the weather (from Open-Meteo, no API key: set your
 `latitude`/`longitude` under `widgets.weather` in `config.yaml`).
+Bottom left shows the next few days from everyone's calendars, see below.
 Click it or press F for full screen. (It's at http://127.0.0.1:8765, and you can turn the
 auto-open off in your `config.yaml`.)
 
@@ -42,6 +43,32 @@ with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 | Widgets: location, refresh rate, on/off (`widgets:`) | `config.yaml` (your private copy) | restart |
 | Shared defaults for everyone | `config.example.yaml` | restart `talk.sh` |
 
+**Adding your calendar:** get your calendar's private iCal (ICS) link
+(Google Calendar: Settings → your calendar → Integrate calendar → "Secret address in
+iCal format"; Outlook: Settings → Calendar → Shared calendars → Publish a calendar → ICS
+link) and paste it into **your `config.yaml`** (never `config.example.yaml`: anyone with
+the link can read your calendar):
+
+```yaml
+widgets:
+  calendar:
+    calendars:
+      - name: Alex
+        url: "https://calendar.google.com/calendar/ical/.../basic.ics"
+      - name: Sam
+        url: "https://outlook.office365.com/owa/calendar/.../calendar.ics"
+        colour: "#ffa66b"   # optional
+```
+
+Check it with `uv run mirror-hub --once calendar`. The links never appear in logs, errors
+or the page. `days`, `max_events` and `refresh_minutes` are in `config.example.yaml`.
+
+Each event shows your RSVP: a solid dot means you're going, a ring with "maybe" is
+tentative, a faint dot with "?" means you haven't replied, and events you declined are
+hidden (`show_declined: true` brings them back). Google feeds say whose calendar they are.
+For other feeds, add `email:` to that calendar's entry so Mirror can find your reply. The
+email stays private: only the going/maybe/not-replied state reaches the screen.
+
 **Trying voices:**
 ```bash
 uv run mirror-talk --voices                                  # list them all
@@ -59,7 +86,7 @@ Your `config.yaml` and `mirror.md` are git-ignored (setup creates them from the
 mic → Moonshine (speech-to-text) → llama.cpp (Hermes-3 Llama 3.2 3B, abliterated)
     → Kokoro (text-to-speech, "George" by default, British male) → speakers
                                   ↘ display/ (orb + subtitles, live via Server-Sent Events)
-hub (background threads: weather, ...) ↗
+hub (background threads: weather, calendars, ...) ↗
 ```
 
 The reply is streamed and spoken sentence by sentence, so Mirror starts talking before

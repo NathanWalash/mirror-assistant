@@ -52,6 +52,14 @@ model, for working on widgets.
 **Weather: Open-Meteo.** Free, no API key or account, good UK coverage, and it gives an
 hourly chance of rain, which matters more in West Yorkshire than the temperature does.
 
+**Calendars: private ICS links, parsed with `icalendar` + `recurring-ical-events`.** Every
+calendar app (Google, Outlook, iCloud) can publish a read-only ICS link, so there's no
+OAuth app to register and no tokens to refresh. The first exception to "stdlib only":
+recurring events with exceptions, moved occurrences, Outlook's Windows time-zone names
+and the clocks changing are exactly what goes wrong in a hand-written parser, and these
+two libraries are well maintained and pure Python (fine on the Pi). The links are
+secrets, so they live in `config.yaml` only and are redacted from every error and log line.
+
 ## Personality lives in a plain Markdown file
 Re-read on every reply, so we can iterate without restarts. The shared template is
 committed and personal copies are git-ignored (the repo is public).

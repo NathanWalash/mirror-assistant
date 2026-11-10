@@ -234,6 +234,15 @@ wheels = [
 ]
 
 [[package]]
+name = "click"
+version = "8.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/37/edbf1b0707709013c0cf2e8317e03d97ed29bf4cac709fe328904ae92a38/click-8.5.1.tar.gz", hash = "sha256:9bbfada76703fd1d784b83eea012e3e8c6a001a876543ef104fa56aaaeb072b4", size = 399151, upload-time = "2026-11-06T17:37:01.021Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/7d/164b7ffc8624fe9efb4221bf9af485d5c1e41b9ae118045d2b6dc5457d8b/click-8.5.1-py3-none-any.whl", hash = "sha256:8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37", size = 126163, upload-time = "2026-11-06T17:36:59.287Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -277,6 +286,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/f8/7e33845d6b90ce1cf37cfabf25cb859277c7d3533ef1b6b1e1ca58581549/google_crc32c-1.9.0-cp315-cp315-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f97c3806dcea41c29c04965347b0e12481561b75e0045dc7a4f69d75dec5d9b1", size = 38359, upload-time = "2026-09-24T21:38:14.983Z" },
     { url = "https://files.pythonhosted.org/packages/36/ff/556b2423f449a7515af6b8222a4d7833cbe09ff3e8d2f0b80471f5f6d02e/google_crc32c-1.9.0-cp315-cp315-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:0abe7e202c25909869c35672ab0f2fe748a7acf276eb78577332a7c38999740f", size = 36858, upload-time = "2026-09-24T21:38:15.799Z" },
     { url = "https://files.pythonhosted.org/packages/40/71/4733f1b7c921d04a2bb9b9916cf66498bf7ad0860a06289413830da83192/google_crc32c-1.9.0-cp315-cp315-win_amd64.whl", hash = "sha256:5695c8b9327e040b2aba12c6659b0acb5995314ef0af0192da66e662e011103b", size = 35534, upload-time = "2026-09-24T21:39:31.337Z" },
+]
+
+[[package]]
+name = "icalendar"
+version = "7.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "tzdata" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/47/2b/1bbf82d316df18c3331d9a06228819c8a5814ceda545a3e9980e52ffce1b/icalendar-7.3.0.tar.gz", hash = "sha256:7bd001c8e648205e1bde5c6a5b77096598e8d0893dcf57755c6c597635620132", size = 525811, upload-time = "2026-08-19T15:10:21.05Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/82/50bff78b0bb0c7d7c0cb39e0ee189b92f611fff6bd7cf57f25e92d5a7551/icalendar-7.3.0-py3-none-any.whl", hash = "sha256:8355acfe17be81b368f0b1e3740817cea9b56ea889931f8f1a87c62f2d28db0b", size = 542540, upload-time = "2026-08-19T15:10:19.525Z" },
 ]
 
 [[package]]
@@ -325,17 +348,21 @@ name = "mirror-voice"
 version = "0.1.0"
 source = { editable = "voice" }
 dependencies = [
+    { name = "icalendar" },
     { name = "moonshine-voice" },
     { name = "numpy" },
     { name = "pyyaml" },
+    { name = "recurring-ical-events" },
     { name = "sounddevice" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "icalendar", specifier = ">=7.3.0" },
     { name = "moonshine-voice", specifier = ">=0.1.5" },
     { name = "numpy", specifier = ">=2" },
     { name = "pyyaml", specifier = ">=6" },
+    { name = "recurring-ical-events", specifier = ">=3.8.2" },
     { name = "sounddevice", specifier = ">=0.5" },
 ]
 
@@ -495,6 +522,18 @@ wheels = [
 ]
 
 [[package]]
+name = "python-dateutil"
+version = "2.9.0.post0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -541,6 +580,21 @@ wheels = [
 ]
 
 [[package]]
+name = "recurring-ical-events"
+version = "3.8.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "icalendar" },
+    { name = "python-dateutil" },
+    { name = "tzdata" },
+    { name = "x-wr-timezone" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b9/f5/898abd8fbb25766ec6cb17b244730ebf192f47963c71eeacd61aadd903a1/recurring_ical_events-3.8.2.tar.gz", hash = "sha256:e731af31d0b7dec5cd47a1defacd8549e2f36fab1c1995e8b9f042822a0acf8e", size = 604992, upload-time = "2026-04-30T19:21:46.2Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/f7/d3eb4f545baf5d6daaa5881694517626fb7ad04036d94168197a4f021384/recurring_ical_events-3.8.2-py3-none-any.whl", hash = "sha256:9ad605e27b4fbeb70ee1c66205ade32550be15a57cedc579606522f1c67aef6d", size = 241358, upload-time = "2026-04-30T19:21:44.079Z" },
+]
+
+[[package]]
 name = "requests"
 version = "2.34.2"
 source = { registry = "https://pypi.org/simple" }
@@ -581,6 +635,15 @@ wheels = [
 ]
 
 [[package]]
+name = "six"
+version = "1.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
 name = "sounddevice"
 version = "0.5.6"
 source = { registry = "https://pypi.org/simple" }
@@ -609,10 +672,42 @@ wheels = [
 ]
 
 [[package]]
+name = "typing-extensions"
+version = "4.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/cc/6253133b5bb138fc3306cebfbda2c520f545d36b5be2c7255cc528bb45d6/typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5", size = 113555, upload-time = "2026-07-02T08:40:05.92Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8", size = 45571, upload-time = "2026-07-02T08:40:04.659Z" },
+]
+
+[[package]]
+name = "tzdata"
+version = "2026.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/29/6a1391d31cd00ff9e927215a224a880e1e84e826b64ba80a499e51c074d8/tzdata-2026.6.tar.gz", hash = "sha256:85d2cd9c09f81f0bb29db27759fc83af4f1e620efb814f8c5bf8b4cc4feece6d", size = 201017, upload-time = "2026-10-28T09:57:09.137Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/tzdata-2026.6-py2.py3-none-any.whl", hash = "sha256:0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec", size = 348210, upload-time = "2026-10-28T09:57:07.276Z" },
+]
+
+[[package]]
 name = "urllib3"
 version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e3/05/b17359e1cefb4f909b5e40b1b90a496d987258916dbbf88e842c729f510e/urllib3-2.8.0.tar.gz", hash = "sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63", size = 458972, upload-time = "2026-09-15T19:29:36.253Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl", hash = "sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3", size = 135717, upload-time = "2026-09-15T19:29:34.577Z" },
+]
+
+[[package]]
+name = "x-wr-timezone"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "icalendar" },
+    { name = "tzdata" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/79/2b/8ae5f59ab852c8fe32dd37c1aa058eb98aca118fec2d3af5c3cd56fffb7b/x_wr_timezone-2.0.1.tar.gz", hash = "sha256:9166c40e6ffd4c0edebabc354e1a1e2cffc1bb473f88007694793757685cc8c3", size = 18212, upload-time = "2025-02-06T17:10:40.913Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/b7/4bac35b4079b76c07d8faddf89467e9891b1610cfe8d03b0ebb5610e4423/x_wr_timezone-2.0.1-py3-none-any.whl", hash = "sha256:e74a53b9f4f7def8138455c240e65e47c224778bce3c024fcd6da2cbe91ca038", size = 11102, upload-time = "2025-02-06T17:10:39.192Z" },
 ]

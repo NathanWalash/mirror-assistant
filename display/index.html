@@ -97,6 +97,33 @@
   .rain-hour { display: flex; flex-direction: column; align-items: center; gap: 0.6vh; }
   .rain-track { height: 6vh; width: 2.6vh; display: flex; align-items: flex-end; }
   .rain-bar { width: 100%; background: var(--text); border-radius: 2px; }
+
+  /* Calendar */
+  .widget-calendar { width: 27vw; }
+  .cal-day + .cal-day { margin-top: 1.8vh; }
+  .cal-heading { font-weight: 400; margin-bottom: 0.4vh; }
+  .cal-event { display: flex; align-items: baseline; gap: 1vw; white-space: nowrap; }
+  .cal-dots { display: inline-flex; gap: 0.4vh; flex: 0 0 auto; width: 3vh; }
+  .cal-dot {
+    display: inline-block; width: 1.2vh; height: 1.2vh; border-radius: 50%;
+    box-sizing: border-box; background: currentColor; border: 0.22vh solid currentColor;
+    transform: translateY(-0.25vh);
+  }
+  .cal-time { flex: 0 0 auto; min-width: 4.2em; font-variant-numeric: tabular-nums; }
+  .cal-title { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .cal-rsvp { flex: 0 0 auto; font-size: 0.72em; margin-left: -0.5vw; color: var(--text-dim); }
+  /* RSVP. Dots: solid = going, ring = maybe, faint = not replied, faint ring = said no. */
+  .cal-dot.rsvp-tentative { background: transparent; }
+  .cal-dot.rsvp-needs_action { opacity: 0.35; }
+  .cal-dot.rsvp-declined, .cal-dot.rsvp-cancelled { background: transparent; opacity: 0.35; }
+  /* Titles follow the keenest person: dimmer the less likely it is to happen. */
+  .cal-event.rsvp-tentative .cal-title { opacity: 0.7; }
+  .cal-event.rsvp-needs_action .cal-title { opacity: 0.5; }
+  .cal-event.rsvp-declined .cal-title,
+  .cal-event.rsvp-cancelled .cal-title { opacity: 0.4; text-decoration: line-through; }
+  .cal-key { display: flex; align-items: center; gap: 0.6vw; margin-top: 1.6vh !important; }
+  .cal-key span:not(.cal-dot) { margin-right: 1vw; }
+  .cal-key .cal-dot { transform: none; }
 </style>
 </head>
 <body>
@@ -113,6 +140,7 @@
 <script src="widgets/widgets.js"></script>
 <script src="widgets/clock.js"></script>
 <script src="widgets/weather.js"></script>
+<script src="widgets/calendar.js"></script>
 
 <script>
 // ---- Look of each state: colours (hue, sat, light), brightness, swirl speed, wobble ----

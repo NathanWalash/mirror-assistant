@@ -58,3 +58,37 @@ widgets:
     longitude: -1.5492
     place: Leeds         # label on the mirror; leave empty to hide
     rain_hours: 6        # how far ahead the "rain likely from..." line looks
+
+  calendar:
+    enabled: true
+    refresh_minutes: 10
+    days: 4              # today plus the next 3 days
+    max_events: 7        # most events on screen at once (later ones become "+3 more")
+    timezone: Europe/London
+    # Your RSVP shows on each event: solid dot = going, ring + "maybe" = tentative,
+    # faint dot + "?" = not replied. Declined and cancelled events are hidden unless:
+    show_declined: false
+    show_cancelled: false
+    # Whose calendars to show. Each private link lets anyone who has it read that
+    # calendar, so they go ONLY in your git-ignored config.yaml, never in this file:
+    #
+    #   widgets:
+    #     calendar:
+    #       calendars:
+    #         - name: Alex
+    #           url: "https://calendar.google.com/calendar/ical/.../basic.ics"
+    #           colour: "#6fb6ff"      # optional dot colour
+    #         - name: Sam
+    #           url: "https://outlook.office365.com/owa/calendar/.../calendar.ics"
+    #           email: "sam@example.com"   # optional: whose RSVPs to read. Google feeds
+    #                                      # name their owner already; never shown or logged
+    #
+    # Getting the link:
+    #   Google Calendar (on a computer): Settings > click your calendar under "Settings for
+    #     my calendars" > "Integrate calendar" > copy "Secret address in iCal format".
+    #   Outlook.com / Microsoft 365: Settings > Calendar > Shared calendars > "Publish a
+    #     calendar" > pick the calendar and "Can view all details" > Publish > copy the ICS link.
+    #   Apple iCloud: Calendar app > share icon by the calendar > tick "Public Calendar" >
+    #     copy the webcal:// link (anyone with it can see the calendar).
+    # Check it with:  uv run mirror-hub --once calendar
+    calendars: []
