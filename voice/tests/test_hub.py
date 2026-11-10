@@ -94,6 +94,25 @@ def test_hub_skips_disabled_and_unknown_widgets():
     assert hub.snapshot() == {"demo": {"ok": True}}
 
 
+def test_board_says_how_fresh_each_widget_is():
+    results = iter([{"temp": 7}, OSError("down")])
+
+    def flaky(settings):
+        result = next(results)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    demo = SimpleNamespace(DEFAULT_REFRESH_MINUTES=5.0, fetch=flaky)
+    hub = Hub({"weather": WidgetConfig(True, None, {})}, Recorder(), registry={"weather": demo})
+    assert hub.board() == {"weather": {"status": "pending", "data": None, "updated": None}}
+    hub.refreshers["weather"].refresh()
+    good = hub.board()["weather"]
+    assert good["status"] == "ok" and good["data"] == {"temp": 7} and good["updated"] > 0
+    hub.refreshers["weather"].refresh()
+    assert hub.board()["weather"] == {**good, "status": "stale"}
+
+
 def test_new_subscribers_get_latest_widget_data():
     b = Broadcaster()
     b.publish(widget="weather", status="ok", data={"temp": 5})

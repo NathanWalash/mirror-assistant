@@ -134,3 +134,11 @@ def test_parse_keyterms_rejects_strings_and_commas(bad):
 def test_name_with_comma_is_rejected(tmp_path):
     with pytest.raises(ValueError):
         personal(tmp_path, "assistant:\n  name: Robin, the mirror\n")
+
+
+def test_people_are_parsed_and_taught_to_speech_to_text(tmp_path):
+    cfg = personal(tmp_path, "assistant:\n  people: [Alex, Sam]\nstt:\n  keyterms: [sam, Leeds]\n")
+    assert cfg.assistant.people == ("Alex", "Sam")
+    assert cfg.keyterms == ["Mirror", "Alex", "Sam", "Leeds"]
+    with pytest.raises(ValueError, match="assistant.people"):
+        personal(tmp_path, "assistant:\n  people: Alex, Sam\n")

@@ -14,6 +14,11 @@ assistant:
   # speech-to-text so it hears the name properly. (Its personality, including what it
   # calls itself in conversation, is the persona file below.)
   name: Mirror
+  # Everyone in the flat, whether or not their calendar is linked below. Saying a name
+  # ("what's Sam up to?") narrows the calendar to that person, and someone without a
+  # calendar gets "I can't see their calendar" instead of someone else's plans. Also
+  # taught to speech-to-text. Real names go in your config.yaml, e.g. [Alex, Sam].
+  people: []
 
 # Who Mirror is. Plain English; edit this file to change the personality.
 # Your private copy (git-ignored), created from mirror.example.md by scripts/setup.sh.
@@ -126,6 +131,7 @@ widgets:
     walk_minutes: 0      # hide buses leaving sooner than you can get to the stop
     horizon_minutes: 90  # how far ahead to look
     name: ""             # label on the mirror; empty = the stop's name
+    town: []             # destination words meaning "into town", e.g. ["Leeds"] (for the assistant)
     region: yorkshire    # which BODS GTFS region file holds your stop
     # Optional: split your stops by direction, each with its own heading. The groups'
     # stops replace `stops` above. Codes here are placeholders, not real stops:

@@ -47,5 +47,8 @@ Rough order. AI first, then the mirror around it.
 - [x] Display: bus widget (bottom-right)
 - [ ] Buses: watch the live times against the real stop for a week; tune if often off
 - [ ] Chromium kiosk on the Pi
-- [ ] Mirror can answer from real data ("what's my day like?"); `Hub.snapshot()` has it
-      (the calendar data carries ready-made `summary` lines for this)
+- [x] Assistant can answer from real data ("what's my day like?", "next bus into town?",
+      "give me a rundown"): keyword routing adds a short "Live info" note, see
+      docs/decisions.md
+- [ ] Answering from the board: a week view ("what's on this week?"), and measuring the
+      note's prompt cost on the Pi

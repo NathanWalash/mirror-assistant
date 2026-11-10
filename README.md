@@ -48,7 +48,7 @@ speech-to-text. Each run is also appended as one JSON line to `models/bench.json
 | What | Where | Applies |
 |---|---|---|
 | Personality | `personality/personas/mirror.md` (your private copy) | next reply, no restart |
-| **Name** (`assistant.name`), names to listen out for (`stt.keyterms`) | `config.yaml` (your private copy) | restart `talk.sh` |
+| **Name** (`assistant.name`), flatmates (`assistant.people`), names to listen out for (`stt.keyterms`) | `config.yaml` (your private copy) | restart `talk.sh` |
 | Shared personality template | `personality/personas/mirror.example.md` | after re-copying |
 | **Voice** (`tts.voice`), talking speed | `config.yaml` (your private copy) | restart `talk.sh` |
 | Model, creativity, reply length, display | `config.yaml` (your private copy) | restart `talk.sh` |
@@ -96,6 +96,39 @@ there as well (e.g. `keyterms: [Alex, Sam]`) so it hears who's talking about who
 Your `config.yaml` and `mirror.md` are git-ignored (setup creates them from the
 `*.example*` templates), so personal stuff is safe there.
 **This repo is public**, so keep names and private details out of everything else.
+
+## Mirror reads the board
+
+Ask about what's on the screen and Mirror answers from it: "do I need a coat?",
+"when's the next bus into town?", "what's my day like?", "what's Sam up to tomorrow?",
+"give me a rundown". No tool calls: each question is matched against keyword lists
+(`voice/src/mirror_voice/context.py`), and a few lines of the board's live data are added
+under it as a `[Live info]` note:
+
+| You say something about | It adds |
+|---|---|
+| anything at all | the time and date |
+| weather, rain, coat, cold, umbrella, outside... | the weather |
+| bus, into town, a route number ("the 24"), a destination | the next few buses |
+| today, tomorrow, my day, meetings, busy, plans, a flatmate's name | today's and tomorrow's calendar |
+| "rundown", "morning brief", "catch me up", "what's going on" | all of it, briefly |
+
+To make it work well, in your `config.yaml`:
+
+```yaml
+assistant:
+  people: [Alex, Sam]   # everyone in the flat, calendar or not
+widgets:
+  bus:
+    town: [Leeds]       # destinations with this word count as "into town"
+```
+
+`people` lets "what's Sam up to?" narrow the calendar to Sam, and stops the model passing
+someone else's plans off as theirs when they have no calendar linked. A widget that's
+failing is described as "not updated since 14:05", or "unavailable": Mirror is told to
+say it doesn't know rather than guess. The data only flows while the hub runs, which
+`talk.sh` does whenever the display is on; without it Mirror only knows the time.
+To teach it a new phrase, add it to one of the lists at the top of `context.py`.
 
 ## Buses
 
@@ -149,7 +182,8 @@ in `cache/bus/timetable.json` and deletes the download. Outside Yorkshire, set `
 mic → Moonshine (speech-to-text) → llama.cpp (Hermes-3 Llama 3.2 3B, abliterated)
     → Kokoro (text-to-speech, "George" by default, British male) → speakers
                                   ↘ display/ (orb + subtitles, live via Server-Sent Events)
-hub (background threads: weather, calendars, buses, ...) ↗
+hub (background threads: weather, calendars, buses) ↗
+   └→ "Live info" note on each question, so Mirror can answer from the board
 ```
 
 The reply is streamed and spoken sentence by sentence, so Mirror starts talking before

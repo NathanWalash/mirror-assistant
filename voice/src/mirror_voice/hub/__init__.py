@@ -58,6 +58,7 @@ class Refresher:
         self._publish = publish
         self.data: dict[str, Any] | None = None  # last good result
         self.updated: float | None = None
+        self.status = "pending"  # ok | stale | error, as last published
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, name=f"hub-{name}", daemon=True)
 
@@ -68,14 +69,16 @@ class Refresher:
             self.updated = time.time()
         except Exception as e:  # any widget bug or network blip: show stale, carry on
             log.warning("%s widget: fetch failed: %s", self.name, e)
+            self.status = "stale" if self.data is not None else "error"
             self._publish(
                 widget=self.name,
-                status="stale" if self.data is not None else "error",
+                status=self.status,
                 data=self.data,
                 updated=self.updated,
                 error=str(e)[:200],
             )
             return False
+        self.status = "ok"
         self._publish(widget=self.name, status="ok", data=self.data, updated=self.updated)
         return True
 
@@ -126,3 +129,12 @@ class Hub:
     def snapshot(self) -> dict[str, dict[str, Any] | None]:
         """Latest good data per widget (e.g. for Mirror to answer "what's the weather?")."""
         return {name: r.data for name, r in self.refreshers.items()}
+
+    def board(self) -> dict[str, dict[str, Any]]:
+        """Everything the screen shows, with how fresh it is: per widget
+        {"status": "pending" | "ok" | "stale" | "error", "data": ..., "updated": ...}.
+        What the assistant reads to answer from (see mirror_voice.context)."""
+        return {
+            name: {"status": r.status, "data": r.data, "updated": r.updated}
+            for name, r in self.refreshers.items()
+        }

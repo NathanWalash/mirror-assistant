@@ -22,12 +22,14 @@ import threading
 import time
 import wave
 import webbrowser
+from collections.abc import Callable, Mapping
 from dataclasses import replace
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 
-from mirror_voice import bench
+from mirror_voice import bench, context
 from mirror_voice.config import Config, load_config
 from mirror_voice.display_server import Broadcaster, DisplayServer, loudness
 from mirror_voice.hub import Hub
@@ -40,15 +42,39 @@ from mirror_voice.tts import Voice, available_voices
 
 
 class Mirror:
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: Config, voice: Voice | None = None, llm: LLMClient | None = None):
         self.cfg = cfg
         self.name = cfg.assistant.name
         self.persona = Persona(cfg.persona)
-        self.llm = LLMClient(cfg.llm)
-        self.voice = Voice(cfg.tts)
+        self.llm = llm or LLMClient(cfg.llm)
+        self.voice = voice or Voice(cfg.tts)
         self.chat = Conversation(max_messages=cfg.llm.history_turns)
         # Publishing with no page open is a harmless no-op.
         self.display = Broadcaster(cfg.display.page_settings())
+        # What's on the screen (Hub.board), for answering from live data. None when the
+        # hub isn't running: then the assistant only knows the time.
+        self.board: Callable[[], Mapping] | None = None
+        self.last_live_info = ""  # the note added to the latest question
+
+    def prompt(self, user_text: str, now: datetime | None = None) -> list[dict[str, str]]:
+        """Messages for one reply: persona, history, then the question with its live note.
+
+        The persona and history come first and don't change between turns, so llama.cpp
+        reuses its cache for them; only the new question (and its note) is read afresh.
+        The note is never stored in the history, so the history stays small.
+        """
+        try:
+            board = self.board() if self.board else None
+        except Exception as e:  # the board is a bonus: never let it stop a reply
+            print(f"(couldn't read the board: {e})")
+            board = None
+        now = now or datetime.now().astimezone()
+        people = self.cfg.assistant.people
+        self.last_live_info = context.live_info(user_text, board, now, people)
+        messages = self.chat.build(self.persona.system_prompt())
+        question = context.add_to_question(user_text, self.last_live_info)
+        messages.append({"role": "user", "content": question})
+        return messages
 
     def respond(
         self,
@@ -62,14 +88,11 @@ class Mirror:
         `record_to` saves the reply as a WAV instead of playing it; `play=False` just
         throws the audio away (for benchmarks). Returns how long each stage took.
         """
-        import sounddevice as sd  # imported lazily: needs PortAudio, not needed in tests
-
         started = time.perf_counter()
         timings = ReplyTimings()
         play = play and record_to is None
         self.display.publish(state="thinking")
-        messages = self.chat.build(self.persona.system_prompt())
-        messages.append({"role": "user", "content": user_text})
+        messages = self.prompt(user_text)
 
         # Three stages run at once so nothing waits on anything else:
         #   this thread: LLM tokens -> sentences      -> to_speak
@@ -105,6 +128,8 @@ class Mirror:
                         recorded.append((audio, rate))
                     if not play:
                         continue
+                    import sounddevice as sd  # lazily: needs PortAudio, not needed in tests
+
                     if out is None or out.samplerate != rate:
                         if out is not None:
                             out.stop()
@@ -154,7 +179,7 @@ class Mirror:
             self.display.publish(state="idle")
         print()
 
-        self.chat.add("user", user_text)
+        self.chat.add("user", user_text)  # without the live note: history stays small
         self.chat.add("assistant", " ".join(reply))
         if first_audio_at:
             print(f"  [voice started {first_audio_at[0] - heard_at:.2f}s after you stopped]")
@@ -315,7 +340,8 @@ def main() -> None:
             webbrowser.open(server.url)
         # Widget fetch failures are logged as warnings and shown as stale on the display.
         logging.basicConfig(level=logging.WARNING, format="\n(%(message)s)")
-        Hub(cfg.widgets, mirror.display.publish).start()
+        hub = Hub(cfg.widgets, mirror.display.publish).start()
+        mirror.board = hub.board  # so the assistant can answer from what's on screen
     live(mirror)
 
 
