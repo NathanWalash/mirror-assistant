@@ -1,0 +1,5 @@
+stop_id,stop_code,stop_name,stop_lat,stop_lon,wheelchair_boarding,location_type,parent_station,platform_code
+450000001,45000001,"Northgate",53.800000,-1.550000,0,0,,
+450000002,45000002,"Our Stop",53.810000,-1.550000,0,0,,
+450000003,45000003,"Seacroft",53.820000,-1.550000,0,0,,
+450000009,45000009,"Elsewhere",53.900000,-1.700000,0,0,,

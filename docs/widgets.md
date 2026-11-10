@@ -95,8 +95,8 @@ and load it in `display/index.html`, after `widgets.js`:
 - A widget with no server side (like `clock.js`) uses `init(body)` instead of `render`
   and needs no Python module or config.
 
-Slots: top-left has the clock, top-right the weather, bottom-left the calendar.
-**bottom-right** (buses) is free. Bottom slots are narrower (27% of the width) because
+Slots: top-left has the clock, top-right the weather, bottom-left the calendar,
+bottom-right the buses. Bottom slots are narrower (27% of the width) because
 the subtitles share the bottom edge; keep those widgets to short lines.
 
 ## 4. Check it

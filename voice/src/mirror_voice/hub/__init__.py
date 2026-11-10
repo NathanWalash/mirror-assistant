@@ -24,7 +24,7 @@ from types import ModuleType
 from typing import Any
 
 from mirror_voice.config import WidgetConfig
-from mirror_voice.hub import calendar, weather
+from mirror_voice.hub import bus, calendar, weather
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ log = logging.getLogger(__name__)
 WIDGETS: dict[str, ModuleType] = {
     "weather": weather,
     "calendar": calendar,
+    "bus": bus,
 }
 
 RETRY_SECONDS = 60.0  # after a failure, try again this soon (or at the normal interval if sooner)

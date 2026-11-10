@@ -124,6 +124,24 @@
   .cal-key { display: flex; align-items: center; gap: 0.6vw; margin-top: 1.6vh !important; }
   .cal-key span:not(.cal-dot) { margin-right: 1vw; }
   .cal-key .cal-dot { transform: none; }
+  /* Buses: route | destination | countdown, one row per bus */
+  .bus-rows {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 1.4vw;
+    row-gap: 0.8vh;
+    text-align: left;
+    width: 27vw;
+  }
+  .bus-route { font-weight: 500; }
+  .bus-dest { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bus-when { text-align: right; white-space: nowrap; }
+  .bus-live {
+    width: 2.8vh; height: 2.8vh; margin-right: 0.8vh; vertical-align: 0;
+    fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round;
+  }
+  .bus-live circle { fill: currentColor; stroke: none; }
 </style>
 </head>
 <body>
@@ -141,6 +159,7 @@
 <script src="widgets/clock.js"></script>
 <script src="widgets/weather.js"></script>
 <script src="widgets/calendar.js"></script>
+<script src="widgets/bus.js"></script>
 
 <script>
 // ---- Look of each state: colours (hue, sat, light), brightness, swirl speed, wobble ----
