@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mirror</title>
+<script>
+  // Kiosk mode (the Pi opens /?kiosk): no "full screen" hint. Set before first paint.
+  if (new URLSearchParams(location.search).has("kiosk")) document.documentElement.classList.add("kiosk");
+</script>
 <style>
   :root {
     --bg: #000;
@@ -51,6 +55,15 @@
     font-size: 13px;
     transition: opacity 2s ease;
   }
+  #hint.gone { opacity: 0; }
+  /* Night dimming: a black layer over everything. Cheaper on the Pi than a CSS filter,
+     which would re-filter the whole animated screen every frame. */
+  #night {
+    position: fixed; inset: 0; z-index: 10;
+    background: #000; opacity: 0; pointer-events: none;
+  }
+  #night.eased { transition: opacity 60s linear; }
+  .kiosk #hint { display: none; } /* ?kiosk (the Pi) or already full screen */
   #offline {
     position: fixed;
     top: 40px;
@@ -93,10 +106,15 @@
     fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
   .weather-rain { margin-top: 1.6vh !important; }
-  .rain-bars { display: flex; justify-content: flex-end; gap: 1vh; }
-  .rain-hour { display: flex; flex-direction: column; align-items: center; gap: 0.6vh; }
-  .rain-track { height: 6vh; width: 2.6vh; display: flex; align-items: flex-end; }
-  .rain-bar { width: 100%; background: var(--text); border-radius: 2px; }
+  .rain-bars { display: flex; justify-content: flex-end; gap: 1.2vh; }
+  .rain-hour { display: flex; flex-direction: column; align-items: center; gap: 0.6vh; min-width: 4.2vh; }
+  .rain-pct { min-height: 1.2em; font-size: 1.8vh; font-variant-numeric: tabular-nums; }
+  /* Faint full-height track, so a bar's height reads as a share of 100% */
+  .rain-track {
+    height: 6vh; width: 2.6vh; display: flex; align-items: flex-end;
+    background: rgba(255, 255, 255, 0.07); border-radius: 3px; overflow: hidden;
+  }
+  .rain-bar { width: 100%; background: #9cc8ff; border-radius: 3px 3px 0 0; }
 
   /* Calendar */
   .widget-calendar { width: 27vw; }
@@ -134,6 +152,9 @@
     text-align: left;
     width: 27vw;
   }
+  .bus-heading, .bus-none { grid-column: 1 / -1; }
+  .bus-heading { font-weight: 400; }
+  .bus-heading:not(:first-child) { margin-top: 1.2vh; }
   .bus-route { font-weight: 500; }
   .bus-dest { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bus-when { text-align: right; white-space: nowrap; }
@@ -153,6 +174,7 @@
 <div class="slot" id="slot-top-right"></div>
 <div class="slot" id="slot-bottom-left"></div>
 <div class="slot" id="slot-bottom-right"></div>
+<div id="night"></div>
 
 <!-- Widgets: the registry first, then one file per widget. See docs/widgets.md. -->
 <script src="widgets/widgets.js"></script>
@@ -250,6 +272,33 @@ function fadeSubsLater() {
   fadeTimer = setTimeout(() => (subs.style.opacity = 0), 12000);
 }
 
+// ---- Night dimming (config.yaml display.night, sent by the server on connect) ----
+// It's a mirror in a flat: between start and end the whole screen drops to `brightness`.
+// For testing, ?now=03:00 pretends it's that time.
+const nightLayer = document.getElementById("night");
+const fakeNow = new URLSearchParams(location.search).get("now");
+let night = null;
+const minutes = (hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
+function isNight(n) {
+  const d = new Date();
+  const now = fakeNow ? minutes(fakeNow) : d.getHours() * 60 + d.getMinutes();
+  const start = minutes(n.start), end = minutes(n.end);
+  return start < end ? now >= start && now < end : now >= start || now < end; // may span midnight
+}
+function applyNight() {
+  nightLayer.style.opacity = night && isNight(night) ? 1 - night.brightness : 0;
+}
+function setNight(settings) {
+  night = settings || null;
+  applyNight();
+  // Dim straight away on load; fade gently at the start and end of the night after that.
+  setTimeout(() => nightLayer.classList.add("eased"), 100);
+}
+setInterval(applyNight, 30000);
+
 // ---- Live events from the voice loop ----
 const offline = document.getElementById("offline");
 const events = new EventSource("/events");
@@ -271,6 +320,7 @@ events.onmessage = (msg) => {
   online();
   const e = JSON.parse(msg.data);
   if (e.widget) return Widgets.update(e);
+  if (e.display) return setNight(e.display.night);
   if (e.state) {
     target = STATES[e.state] || STATES.idle;
     if (e.state === "idle") fadeSubsLater();
@@ -296,8 +346,20 @@ events.onmessage = (msg) => {
 };
 
 // ---- Full screen ----
+// The hint fades after a few seconds, and never shows once the page fills the screen
+// (kiosk browsers often don't report fullscreenElement, so compare with the screen too).
 const hint = document.getElementById("hint");
-setTimeout(() => (hint.style.opacity = 0), 6000);
+const hideHint = () => hint.classList.add("gone");
+setTimeout(hideHint, 4000);
+function checkFullscreen() {
+  const fills = innerWidth >= screen.width && innerHeight >= screen.height;
+  if (document.fullscreenElement || fills || matchMedia("(display-mode: fullscreen)").matches) {
+    document.documentElement.classList.add("kiosk");
+  }
+}
+checkFullscreen();
+addEventListener("resize", checkFullscreen);
+document.addEventListener("fullscreenchange", hideHint);
 function fullscreen() {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
 }

@@ -169,6 +169,60 @@ def test_nothing_coming(timetable):
     data = show(timetable, at(15, 0), name="Home")
     assert data["departures"] == [] and data["stop"] == "Home"
     assert data["summary"] == "No buses in the next 90 minutes"
+    assert "groups" not in data  # no groups configured: the flat list, as before
+
+
+# ---- Stops grouped by direction ----
+
+OTHER_SIDE = "450000001"  # boards in the fixture too, so it can stand in for the far side
+GROUPS = [{"label": "Town", "stops": [OUR_STOP]}, {"label": "Out", "stops": [OTHER_SIDE]}]
+
+
+@pytest.fixture
+def two_sides(gtfs_zip):
+    return bus_timetable.build(gtfs_zip, [OTHER_SIDE, OUR_STOP], TUESDAY)
+
+
+def test_groups_split_departures_by_stop(two_sides):
+    data = show(two_sides, at(10, 1), groups=GROUPS, max_per_group=2)
+    town, out = data["groups"]
+    assert town["label"] == "Town" and out["label"] == "Out"
+    assert [(r["route"], r["due"]) for r in town["departures"]] == [
+        ("33", "9 min"),
+        ("33", "10:40"),
+    ]
+    assert [(r["route"], r["due"]) for r in out["departures"]] == [
+        ("X6", "4 min"),
+        ("33", "29 min"),
+    ]
+    assert data["summary"] == "Town: next 33 in 9 minutes; Out: next X6 in 4 minutes"
+    json.dumps(data)
+
+
+def test_group_can_set_its_own_limit_and_be_empty(two_sides):
+    groups = [{"label": "Town", "stops": [OUR_STOP], "max_departures": 1}, GROUPS[1]]
+    town, out = show(two_sides, at(10, 1), groups=groups)["groups"]
+    assert len(town["departures"]) == 1 and len(out["departures"]) == 3  # default 3
+    late = show(two_sides, at(15, 0), groups=GROUPS)
+    assert late["summary"] == (
+        "Town: no buses in the next 90 minutes; Out: no buses in the next 90 minutes"
+    )
+
+
+def test_bus_calling_at_two_stops_in_a_group_shows_once(two_sides):
+    both = [{"label": "Any", "stops": [OTHER_SIDE, OUR_STOP], "max_departures": 9}]
+    [group] = show(two_sides, at(10, 1), groups=both)["groups"]
+    dests = [r["destination"] for r in group["departures"]]
+    assert dests == ["No Pickup", "Leeds Bus Stn", "Seacroft", "Extra"]
+
+
+def test_group_stops_replace_the_flat_stop_list():
+    settings = {"stops": ["450010687"], "groups": GROUPS + [{"stops": [OUR_STOP]}]}
+    assert bus.with_group_stops(settings)["stops"] == [OUR_STOP, OTHER_SIDE]
+    assert bus.with_group_stops({"stops": ["1"]}) == {"stops": ["1"]}
+    assert bus.groups({"groups": [{"stops": ["1"]}]})[0]["label"] == "Group 1"
+    with pytest.raises(ValueError, match="needs a list of stops"):
+        bus.groups({"groups": [{"label": "Town"}]})
 
 
 # ---- Live positions ----

@@ -22,6 +22,8 @@
     thunder: cloud(-8) + `<path d="M34 40l-6 10h7l-4 9"/>`,
   };
 
+  const DRY_BELOW = 5; // % chance of rain under which an hour counts as dry
+
   Widgets.register("weather", {
     slot: "top-right",
     title: "Weather",
@@ -37,24 +39,36 @@
 
       const range = [`High ${w.high}°`, `Low ${w.low}°`, w.place].filter(Boolean).join(" · ");
 
-      const bars = el("div", "rain-bars");
-      for (const h of w.rain.hours) {
-        const col = el("div", "rain-hour");
-        const bar = el("div", "rain-bar");
-        bar.style.height = `${Math.max(h.chance, 3)}%`;
-        bar.style.opacity = 0.35 + (h.chance / 100) * 0.65;
-        col.append(el("div", "rain-track"), el("div", "tiny dim", h.time.slice(0, 2)));
-        col.firstChild.append(bar);
-        bars.append(col);
-      }
-
-      body.replaceChildren(
+      const parts = [
         now,
         el("div", "medium", w.condition),
         el("div", "small dim", range),
         el("div", "small weather-rain", w.rain.summary),
-        bars,
-      );
+      ];
+
+      // Hourly chance of rain: only when there's some. If it's dry, the line above says so,
+      // and a row of empty bars just looks broken.
+      if (w.rain.hours.some((h) => h.chance >= DRY_BELOW)) {
+        const bars = el("div", "rain-bars");
+        for (const h of w.rain.hours) {
+          const col = el("div", "rain-hour");
+          const track = el("div", "rain-track");
+          if (h.chance >= DRY_BELOW) {
+            const bar = el("div", "rain-bar");
+            bar.style.height = `${h.chance}%`;
+            bar.style.opacity = 0.45 + (h.chance / 100) * 0.55;
+            track.append(bar);
+          }
+          col.append(
+            el("div", "tiny dim rain-pct", h.chance >= DRY_BELOW ? `${h.chance}%` : ""),
+            track,
+            el("div", "tiny dim", h.time.slice(0, 2)),
+          );
+          bars.append(col);
+        }
+        parts.push(bars);
+      }
+      body.replaceChildren(...parts);
     },
   });
 })();

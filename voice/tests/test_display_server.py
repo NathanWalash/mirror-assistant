@@ -13,6 +13,15 @@ def test_new_subscriber_starts_with_current_state():
     assert json.loads(q.get_nowait()) == {"state": "thinking"}
 
 
+def test_page_settings_are_sent_on_connect():
+    b = Broadcaster(display={"night": None})
+    q = b.subscribe()
+    assert json.loads(q.get_nowait()) == {"state": "idle"}
+    assert json.loads(q.get_nowait()) == {"display": {"night": None}}
+    assert q.empty()
+    assert Broadcaster().subscribe().qsize() == 1  # no settings: just the state
+
+
 def test_publish_reaches_all_subscribers_until_they_leave():
     b = Broadcaster()
     q1, q2 = b.subscribe(), b.subscribe()

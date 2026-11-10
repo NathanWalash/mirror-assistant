@@ -24,7 +24,10 @@ Around it sit the time and date and the weather (from Open-Meteo, no API key: se
 Bottom left shows the next few days from everyone's calendars, see below.
 Bottom right are the **next buses** from your stop (see [Buses](#buses) below).
 Click it or press F for full screen. (It's at http://127.0.0.1:8765, and you can turn the
-auto-open off in your `config.yaml`.)
+auto-open off in your `config.yaml`. A kiosk browser should open http://127.0.0.1:8765/?kiosk,
+which never shows the "full screen" hint.) From midnight to 06:30 the whole screen dims
+so it doesn't light up the room: change the hours or brightness under `display.night` in
+your `config.yaml` (add `?now=03:00` to the address to preview it).
 
 **Just the screen, no talking:** `uv run mirror-hub` serves the display and widgets without
 the model or mic, and `uv run mirror-hub --once weather` (or `bus`) prints what that
@@ -108,6 +111,19 @@ The bus widget shows departures from your stop like the countdown sign at a stop
    ```
    Without a key you get timetable times, labelled as such. With one, buses that are
    being tracked show a small signal icon and a time worked out from where the bus is.
+4. **Optional: one heading per direction.** If you list stops on both sides of the road,
+   group them so each direction gets its own heading and next few buses (the groups'
+   stops replace `stops`; NaPTAN's `Bearing` column says which way each stop faces):
+   ```yaml
+   widgets:
+     bus:
+       groups:
+         - label: Town
+           stops: ["450012345"]
+         - label: Headingley
+           stops: ["450012346", "450012347"]
+       max_per_group: 3       # or max_departures on a single group
+   ```
 
 Check it with `uv run mirror-hub --once bus`. The first run each day downloads the
 Yorkshire timetable (~150 MB, about 15 seconds on a Mac), keeps only your stop's buses

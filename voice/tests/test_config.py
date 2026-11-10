@@ -1,6 +1,13 @@
 import shutil
 
-from mirror_voice.config import WidgetConfig, deep_merge, find_repo_root, load_config
+import pytest
+from mirror_voice.config import (
+    NightConfig,
+    WidgetConfig,
+    deep_merge,
+    find_repo_root,
+    load_config,
+)
 
 
 def test_deep_merge_overrides_nested_keys_only():
@@ -45,3 +52,30 @@ def test_widgets_section_loads_with_settings_and_overrides(tmp_path):
 def test_widget_block_defaults():
     assert WidgetConfig.from_raw(None) == WidgetConfig(True, None, {})
     assert WidgetConfig.from_raw({"enabled": False, "refresh_minutes": 1}).refresh_minutes == 1.0
+
+
+def test_night_dimming_defaults_and_overrides(tmp_path):
+    shutil.copy(find_repo_root() / "config.example.yaml", tmp_path / "config.example.yaml")
+    assert load_config(tmp_path).display.night == NightConfig("00:00", "06:30", 0.15)
+
+    (tmp_path / "config.yaml").write_text(
+        "display:\n  night:\n    start: 23:30\n    end: '7:00'\n    brightness: 0.3\n"
+    )
+    display = load_config(tmp_path).display
+    assert display.night == NightConfig("23:30", "07:00", 0.3)  # unquoted 23:30 is fine too
+    assert display.page_settings() == {
+        "night": {"start": "23:30", "end": "07:00", "brightness": 0.3}
+    }
+
+    (tmp_path / "config.yaml").write_text("display:\n  night: false\n")
+    display = load_config(tmp_path).display
+    assert display.night is None and display.page_settings() == {"night": None}
+
+
+def test_night_dimming_rejects_bad_times_and_ignores_no_ops():
+    assert NightConfig.from_raw({"brightness": 1}) is None
+    assert NightConfig.from_raw({"start": "05:00", "end": "05:00"}) is None
+    assert NightConfig.from_raw({"brightness": -2}).brightness == 0.0
+    for bad in ("25:00", "midnight", "6"):
+        with pytest.raises(ValueError, match="06:30"):
+            NightConfig.from_raw({"start": bad})
