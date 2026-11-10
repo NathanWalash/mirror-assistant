@@ -23,10 +23,10 @@ Rough order. AI first, then the mirror around it.
 - [ ] Interrupting it while it talks (barge-in), see echo-cancelling mic below
 
 ## Raspberry Pi
-- [ ] Pi setup/deploy script: OS packages, llama.cpp build, uv + deps, systemd services,
-      Chromium kiosk showing the display
+- [x] Pi setup script: llama.cpp build, Python deps, autostart services, deploy from the Mac
+      ([docs/pi.md](pi.md); still to be tried on the real Pi)
 - [x] Benchmark mode to measure it: `mirror-talk --bench` (and `--bench tts`)
-- [ ] Measure real latency on the Pi and pick model size / STT model accordingly
+- [ ] Measure real latency on the Pi, and choose model size and STT model accordingly
 - [ ] **Kokoro on the Pi is the biggest risk.** Only published numbers are Pi 4: ~2.8-3.2s
       to generate 1s of speech on 4 threads (sherpa-onnx). Pi 5 is maybe 2-3x faster,
       so roughly real time, while also sharing CPU with the LLM. If it stutters: synthesise
@@ -44,7 +44,7 @@ Rough order. AI first, then the mirror around it.
 - [x] Display: calendar widget (bottom-left)
 - [x] Display: bus widget (bottom-right)
 - [ ] Buses: watch the live times against the real stop for a week; tune if often off
-- [ ] Chromium kiosk on the Pi
+- [x] Chromium kiosk on the Pi (`?kiosk` hides the full-screen hint)
 - [x] Assistant can answer from real data ("what's my day like?", "next bus into town?",
       "give me a rundown"): keyword routing adds a short "Live info" note, see
       docs/decisions.md

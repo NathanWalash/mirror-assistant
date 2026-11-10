@@ -1,0 +1,18 @@
+# Mirror's voice loop (mic -> Moonshine -> llama.cpp -> Kokoro -> speakers) plus the
+# display server that the kiosk shows. A systemd *user* unit, so it uses your PipeWire
+# audio. scripts/pi/install.sh fills in the repo path and installs it to ~/.config/systemd/user/.
+[Unit]
+Description=Mirror: voice loop and display server
+Wants=mirror-llm.service
+After=mirror-llm.service pipewire.service wireplumber.service
+StartLimitIntervalSec=0
+
+[Service]
+# run-voice.sh waits until the model server answers, then starts mirror-talk.
+ExecStart=@REPO@/scripts/pi/run-voice.sh
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

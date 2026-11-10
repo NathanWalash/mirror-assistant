@@ -5,7 +5,8 @@ buses, and **Mirror**, a sarcastic Yorkshire assistant you can talk to out loud.
 Everything runs locally, with no cloud.
 
 **Status:** voice loop + the display (a glowing orb with subtitles, a clock, the weather,
-both our calendars and the next buses around it) work on a Mac. Pi deployment comes later.
+both our calendars and the next buses around it) work on a Mac. The Pi setup (boots
+straight into the mirror) is written but not yet tried on real hardware.
 
 ## Quickstart (macOS)
 
@@ -32,6 +33,21 @@ your `config.yaml` (add `?now=03:00` to the address to preview it).
 **Just the screen, no talking:** `uv run mirror-hub` serves the display and widgets without
 the model or mic, and `uv run mirror-hub --once weather` (or `bus`) prints what that
 widget would show.
+
+## On the Raspberry Pi
+
+Flash Raspberry Pi OS with hostname `mirror` and SSH on, then from your Mac:
+
+```bash
+MIRROR_HOST=you@mirror.local scripts/pi/deploy.sh --install   # first time
+MIRROR_HOST=you@mirror.local scripts/pi/deploy.sh             # after each change
+MIRROR_HOST=you@mirror.local scripts/pi/status.sh -f          # logs
+```
+
+The Pi then boots straight into the mirror. Full guide, including picking the mic and
+speakers: [docs/pi.md](docs/pi.md).
+
+## Checking it works
 
 No mic, or just checking it works? `scripts/talk.sh --selftest` asks Mirror a question
 with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
@@ -197,11 +213,11 @@ adding a widget: [docs/widgets.md](docs/widgets.md).
 voice/         the talk loop (Python package: mirror_voice); mirror_voice/hub/ = widget fetchers
 display/       the mirror screen (plain HTML/JS, served by the voice loop); widgets/ = one file each
 personality/   personas now; fine-tuning datasets and scripts later
-scripts/       setup.sh, talk.sh
+scripts/       setup.sh, talk.sh; pi/ for installing on and deploying to the Pi
+deploy/        systemd services for the Pi
 models/        downloaded models and voices (git-ignored)
 cache/         downloaded data, e.g. the bus timetable (git-ignored)
-docs/          decisions, hardware notes, roadmap
-deploy/        coming later
+docs/          decisions, Pi guide, widgets, roadmap
 ```
 
 Working on it together: see [CONTRIBUTING.md](CONTRIBUTING.md).

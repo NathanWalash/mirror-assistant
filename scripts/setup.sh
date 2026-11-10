@@ -19,7 +19,8 @@ if ! command -v llama-server >/dev/null; then
   else
     echo "llama.cpp (llama-server) isn't installed."
     echo "  macOS: brew install llama.cpp"
-    echo "  Linux / Raspberry Pi: see https://github.com/ggml-org/llama.cpp (Pi script coming later)"
+    echo "  Raspberry Pi: scripts/pi/install.sh (builds it, then runs this script)"
+    echo "  Other Linux: see https://github.com/ggml-org/llama.cpp"
     exit 1
   fi
 fi

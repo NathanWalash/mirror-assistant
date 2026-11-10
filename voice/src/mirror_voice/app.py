@@ -305,6 +305,11 @@ def main() -> None:
     parser.add_argument("--voices", action="store_true", help="list available voices")
     parser.add_argument("--say", metavar="TEXT", help=f"speak TEXT in {name}'s voice and exit")
     parser.add_argument("--voice", metavar="ID", help="override the configured voice")
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="don't open the display in a browser (the Pi's kiosk shows it instead)",
+    )
     args = parser.parse_args()
 
     if args.voice:
@@ -336,7 +341,7 @@ def main() -> None:
     if cfg.display.enabled:
         server = DisplayServer(cfg.root / "display", cfg.display.port, mirror.display).start()
         print(f"Display: {server.url}")
-        if cfg.display.open_browser:
+        if cfg.display.open_browser and not args.no_browser:
             webbrowser.open(server.url)
         # Widget fetch failures are logged as warnings and shown as stale on the display.
         logging.basicConfig(level=logging.WARNING, format="\n(%(message)s)")
