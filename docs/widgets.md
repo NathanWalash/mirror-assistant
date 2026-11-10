@@ -25,11 +25,21 @@ def fetch(settings: dict[str, Any]) -> dict[str, Any]:
 - Use the standard library (`urllib.request`, always with a `timeout=`). Add a dependency
   only if you really need one (see CONTRIBUTING.md).
 - Don't catch errors to return something half-empty: raise, and the hub handles it.
+  The exception is a widget with several independent sources (calendar.py: one per
+  person). There, one failing source shouldn't blank the others: return what worked plus
+  a `notes` line ("Couldn't load Sam's calendar"), and raise only if *every* source failed.
 - Keep the network call thin and put the work in a pure `parse(payload, settings)` you can
   test with a saved response in `voice/tests/fixtures/` (no network in tests).
 - Return what the screen needs, already tidied (rounded numbers, `"14:00"` strings,
   a one-line summary). Mirror will later read the same data to answer questions.
 - Keep secrets (calendar links, API keys) out of the returned data and error messages.
+  The same goes for personal details you only need to work something out. For example,
+  the calendar uses owners' email addresses to find their RSVP but only sends the result
+  (`"response": "tentative"`).
+  The hub logs and publishes `str(exception)`, and urllib's errors can quote the URL back
+  (`InvalidURL` includes the path, `URLError` reasons can include it). Catch, turn the
+  error into a short safe reason, and redact: see `calendar.redact()` and its tests.
+- If the data depends on the time of day, let `fetch` take `now=None` so tests can pin it.
 
 Then register it in `voice/src/mirror_voice/hub/__init__.py`:
 
@@ -85,8 +95,8 @@ and load it in `display/index.html`, after `widgets.js`:
 - A widget with no server side (like `clock.js`) uses `init(body)` instead of `render`
   and needs no Python module or config.
 
-Slots: top-left has the clock, top-right the weather. **bottom-left** (calendar) and
-**bottom-right** (buses) are free. Bottom slots are narrower (27% of the width) because
+Slots: top-left has the clock, top-right the weather, bottom-left the calendar.
+**bottom-right** (buses) is free. Bottom slots are narrower (27% of the width) because
 the subtitles share the bottom edge; keep those widgets to short lines.
 
 ## 4. Check it
@@ -99,6 +109,15 @@ uv run ruff check . && uv run ruff format --check . && uv run pytest
 
 `voice/tests/test_hub.py` checks that every registered widget has a config block and a
 JS file loaded by `index.html`.
+
+To screenshot the screen headlessly (e.g. to check a layout), use a wall-clock
+`--timeout`: the page keeps its event stream open, so `--virtual-time-budget` never
+finishes.
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+  --screenshot=shot.png --window-size=1920,1080 --timeout=6000 http://127.0.0.1:8765/
+```
 
 ## What goes over the wire
 
