@@ -1,9 +1,12 @@
-"""Mirror's talk loop: mic -> Moonshine -> llama.cpp (streamed) -> Kokoro/Piper -> speakers.
+"""The talk loop: mic -> Moonshine -> llama.cpp (streamed) -> Kokoro/Piper -> speakers.
 
-uv run mirror-talk              # live: just talk, Mirror answers when you pause
+uv run mirror-talk              # live: just talk, the assistant answers when you pause
 uv run mirror-talk --selftest   # no mic: a synthetic voice asks, the pipeline answers
+uv run mirror-talk --bench      # time every stage (also: --bench tts, --bench stt)
 uv run mirror-talk --voices     # list every voice you can put in your config.yaml
 uv run mirror-talk --say "Ey up" [--voice kokoro_bm_lewis]   # hear a voice
+
+The assistant's name ("Mirror" unless your config.yaml says otherwise) is assistant.name.
 
 While live, the display (glowing orb, subtitles, widgets) is served at http://127.0.0.1:8765/.
 To see the display and widgets without the voice loop: uv run mirror-hub
@@ -24,18 +27,22 @@ from pathlib import Path
 
 import numpy as np
 
+from mirror_voice import bench
 from mirror_voice.config import Config, load_config
 from mirror_voice.display_server import Broadcaster, DisplayServer, loudness
 from mirror_voice.hub import Hub
 from mirror_voice.llm import Conversation, LLMClient, LLMUnavailable
+from mirror_voice.metrics import ReplyTimings
 from mirror_voice.persona import Persona
 from mirror_voice.sentences import SentenceSplitter
+from mirror_voice.stt import SpeechToText, apply_keyterms, stt_arch
 from mirror_voice.tts import Voice, available_voices
 
 
 class Mirror:
     def __init__(self, cfg: Config) -> None:
         self.cfg = cfg
+        self.name = cfg.assistant.name
         self.persona = Persona(cfg.persona)
         self.llm = LLMClient(cfg.llm)
         self.voice = Voice(cfg.tts)
@@ -43,10 +50,23 @@ class Mirror:
         # Publishing with no page open is a harmless no-op.
         self.display = Broadcaster(cfg.display.page_settings())
 
-    def respond(self, user_text: str, heard_at: float, record_to: Path | None = None) -> None:
-        """Stream the reply into a speaking thread, so speech starts after sentence one."""
+    def respond(
+        self,
+        user_text: str,
+        heard_at: float,
+        record_to: Path | None = None,
+        play: bool = True,
+    ) -> ReplyTimings:
+        """Stream the reply into a speaking thread, so speech starts after sentence one.
+
+        `record_to` saves the reply as a WAV instead of playing it; `play=False` just
+        throws the audio away (for benchmarks). Returns how long each stage took.
+        """
         import sounddevice as sd  # imported lazily: needs PortAudio, not needed in tests
 
+        started = time.perf_counter()
+        timings = ReplyTimings()
+        play = play and record_to is None
         self.display.publish(state="thinking")
         messages = self.chat.build(self.persona.system_prompt())
         messages.append({"role": "user", "content": user_text})
@@ -63,10 +83,14 @@ class Mirror:
         def synth() -> None:
             try:
                 while (sentence := to_speak.get()) is not None:
+                    began = time.perf_counter()
                     for i, (audio, rate) in enumerate(self.voice.stream(sentence)):
                         if not first_audio_at:
                             first_audio_at.append(time.time())
+                            timings.first_audio = time.perf_counter() - started
+                        timings.audio_seconds += len(audio) / rate
                         to_play.put((sentence if i == 0 else None, audio, rate))
+                    timings.synth_seconds += time.perf_counter() - began
             finally:
                 to_play.put(None)
 
@@ -79,6 +103,7 @@ class Mirror:
                         self.display.publish(state="speaking", say=sentence)
                     if record_to:
                         recorded.append((audio, rate))
+                    if not play:
                         continue
                     if out is None or out.samplerate != rate:
                         if out is not None:
@@ -105,10 +130,13 @@ class Mirror:
         for thread in threads:
             thread.start()
 
-        splitter, reply = SentenceSplitter(), []
-        print("Mirror: ", end="", flush=True)
+        splitter, reply, chunks = SentenceSplitter(), timings.reply, 0
+        print(f"{self.name}: ", end="", flush=True)
         try:
             for delta in self.llm.stream(messages):
+                if chunks == 0:
+                    timings.first_token = time.perf_counter() - started
+                chunks += 1
                 for sentence in splitter.feed(delta):
                     print(sentence, end=" ", flush=True)
                     reply.append(sentence)
@@ -117,6 +145,8 @@ class Mirror:
                 print(rest, end="", flush=True)
                 reply.append(rest)
                 to_speak.put(rest)
+            timings.llm_done = time.perf_counter() - started
+            timings.add_llm_stats(self.llm.last_timings, chunks, timings.llm_done)
         finally:
             to_speak.put(None)
             for thread in threads:
@@ -134,42 +164,21 @@ class Mirror:
                 w.setsampwidth(2)
                 w.setframerate(recorded[0][1])
                 w.writeframes(np.concatenate([a for a, _ in recorded]).tobytes())
-
-
-def stt_arch(name: str):
-    from moonshine_voice import ModelArch
-
-    try:
-        return ModelArch[name.upper()]
-    except KeyError:
-        options = ", ".join(a.name.lower() for a in ModelArch)
-        raise SystemExit(f"Unknown stt.model {name!r}. Options: {options}") from None
+        return timings
 
 
 def selftest(mirror: Mirror) -> None:
     """End-to-end check without a mic: synthesise a question, transcribe it, answer it."""
-    from moonshine_voice import get_model_for_language
-    from moonshine_voice.transcriber import Transcriber
-
-    question = "Morning Mirror. Should I bring a coat today?"
-    audio, rate = mirror.voice.synth(question)
-    pcm = audio.astype(np.float32) / 32768.0
-    n = int(len(pcm) * 16000 / rate)
-    pcm16k = np.interp(np.linspace(0, len(pcm) - 1, n), np.arange(len(pcm)), pcm)
-    # Pad with silence like a real mic: without it Moonshine garbles the last word.
-    pcm16k = np.concatenate([np.zeros(4000), pcm16k, np.zeros(8000)])
-
-    model_path, arch = get_model_for_language("en", stt_arch(mirror.cfg.stt.model))
-    stt = Transcriber(model_path, arch)
-    started = time.time()
-    lines = stt.transcribe_without_streaming(pcm16k.tolist(), 16000).lines
-    heard = " ".join(line.text for line in lines).strip()
-    print(f"Heard: {heard!r}  [speech-to-text {time.time() - started:.2f}s]")
-    if not heard:
+    question = bench.questions(mirror.name)[0]
+    stt = SpeechToText(mirror.cfg.stt.model, mirror.cfg.keyterms)
+    heard = stt.hear(mirror.voice, question)
+    print(f"Asked: {question!r}")
+    print(f"Heard: {heard.text!r}  [speech-to-text {heard.stt_seconds:.2f}s]")
+    if not heard.text:
         raise SystemExit("Self-test failed: speech-to-text heard nothing.")
 
     out = mirror.cfg.root / "models" / "selftest_reply.wav"
-    mirror.respond(heard, time.time(), record_to=out)
+    mirror.respond(heard.text, time.time(), record_to=out)
     print(f"Reply audio: {out}")
 
 
@@ -214,9 +223,10 @@ def live(mirror: Mirror) -> None:
     )
     print("Loading speech model...")
     mic.load()
+    apply_keyterms(mic, mirror.cfg.keyterms)
     mic.start()
     meter = mic_meter(mirror, listening)
-    print("Listening. Just talk; Mirror answers when you pause. Ctrl+C to quit.\n")
+    print(f"Listening. Just talk; {mirror.name} answers when you pause. Ctrl+C to quit.\n")
     try:
         while True:
             text, heard_at = heard.get()
@@ -225,7 +235,7 @@ def live(mirror: Mirror) -> None:
             print(f"\rYou: {text:<75}")
             mirror.display.publish(you=text)
             listening.clear()
-            mic.mute(True)  # don't transcribe Mirror's own voice from the speakers
+            mic.mute(True)  # don't transcribe the assistant's own voice from the speakers
             try:
                 mirror.respond(text, heard_at)
             finally:
@@ -252,14 +262,26 @@ def preview_voice(cfg: Config, text: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Talk to Mirror.")
+    cfg = load_config()
+    name = cfg.assistant.name
+    parser = argparse.ArgumentParser(description=f"Talk to {name}.")
     parser.add_argument("--selftest", action="store_true", help="test without a microphone")
+    parser.add_argument(
+        "--bench",
+        nargs="?",
+        const="all",
+        choices=bench.MODES,
+        help="time each stage on fixed questions, no mic or speakers: all (default), "
+        "tts (voice only, no model server needed) or stt (speech-to-text only)",
+    )
+    parser.add_argument(
+        "--rounds", type=int, default=1, metavar="N", help="with --bench: repeat N times"
+    )
     parser.add_argument("--voices", action="store_true", help="list available voices")
-    parser.add_argument("--say", metavar="TEXT", help="speak TEXT in Mirror's voice and exit")
+    parser.add_argument("--say", metavar="TEXT", help=f"speak TEXT in {name}'s voice and exit")
     parser.add_argument("--voice", metavar="ID", help="override the configured voice")
     args = parser.parse_args()
 
-    cfg = load_config()
     if args.voice:
         cfg = replace(cfg, tts=replace(cfg.tts, voice=args.voice))
     if args.voices:
@@ -271,6 +293,9 @@ def main() -> None:
         return
 
     mirror = Mirror(cfg)
+    if args.bench in ("tts", "stt"):  # no model server needed
+        bench.run(mirror, args.bench, args.rounds)
+        return
     try:
         mirror.llm.check()
     except LLMUnavailable as e:
@@ -278,6 +303,9 @@ def main() -> None:
 
     if args.selftest:
         selftest(mirror)
+        return
+    if args.bench:
+        bench.run(mirror, args.bench, args.rounds)
         return
 
     if cfg.display.enabled:

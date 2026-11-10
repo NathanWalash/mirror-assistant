@@ -14,13 +14,23 @@ class LLMUnavailable(RuntimeError):
     pass
 
 
-def parse_sse_line(line: str) -> str:
-    """Extract the text delta from one `data: {...}` streaming line ('' if none)."""
+def parse_sse_event(line: str) -> dict:
+    """The JSON object in one `data: {...}` streaming line ({} for anything else)."""
     line = line.strip()
     if not line.startswith("data: ") or line == "data: [DONE]":
-        return ""
-    choices = json.loads(line[len("data: ") :]).get("choices") or [{}]
+        return {}
+    return json.loads(line[len("data: ") :])
+
+
+def delta_text(event: dict) -> str:
+    """The new reply text in a streamed chunk ('' if none)."""
+    choices = event.get("choices") or [{}]
     return choices[0].get("delta", {}).get("content") or ""
+
+
+def parse_sse_line(line: str) -> str:
+    """Extract the text delta from one `data: {...}` streaming line ('' if none)."""
+    return delta_text(parse_sse_event(line))
 
 
 class Conversation:
@@ -41,6 +51,9 @@ class Conversation:
 class LLMClient:
     def __init__(self, cfg: LLMConfig) -> None:
         self.cfg = cfg
+        # llama.cpp's own speed figures for the last reply (prompt_ms, predicted_n,
+        # predicted_per_second, ...), from the final streamed chunk. {} if not sent.
+        self.last_timings: dict = {}
 
     def check(self) -> None:
         try:
@@ -67,7 +80,11 @@ class LLMClient:
             body,
             {"Content-Type": "application/json"},
         )
+        self.last_timings = {}
         with urllib.request.urlopen(req) as resp:
             for raw in resp:
-                if delta := parse_sse_line(raw.decode("utf-8", "replace")):
+                event = parse_sse_event(raw.decode("utf-8", "replace"))
+                if timings := event.get("timings"):
+                    self.last_timings = timings
+                if delta := delta_text(event):
                     yield delta

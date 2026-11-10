@@ -1,4 +1,15 @@
-from mirror_voice.llm import Conversation, parse_sse_line
+from mirror_voice.llm import Conversation, delta_text, parse_sse_event, parse_sse_line
+
+
+def test_final_chunk_carries_llama_cpp_timings():
+    line = (
+        'data: {"choices":[{"finish_reason":"stop","delta":{}}],'
+        '"timings":{"predicted_n":20,"predicted_per_second":12.5}}'
+    )
+    event = parse_sse_event(line)
+    assert event["timings"]["predicted_n"] == 20
+    assert delta_text(event) == ""
+    assert parse_sse_event("data: [DONE]") == {}
 
 
 def test_parse_sse_line_extracts_delta():
