@@ -59,6 +59,36 @@ recurring events with exceptions, moved occurrences, Outlook's Windows time-zone
 and the clocks changing are exactly what goes wrong in a hand-written parser, and these
 two libraries are well maintained and pure Python (fine on the Pi). The links are
 secrets, so they live in `config.yaml` only and are redacted from every error and log line.
+**Buses: Bus Open Data Service (BODS), timetable + live positions, worked out ourselves.**
+BODS is the DfT's free, legally-mandated feed for every English local bus, but it has no
+"next departures at stop X" call: it publishes timetables (TransXChange, and GTFS per
+region) and live bus positions (SIRI-VM, and GTFS-Realtime). So:
+
+- *Timetable, once a day:* download the Yorkshire GTFS (~150 MB zip, ~1 GB unzipped; no key
+  needed), stream it straight out of the zip without unpacking, keep only the trips that
+  pick up at our stop(s) in the next three days, cache that (~700 KB for a busy
+  city-centre stop, less for a suburban one) and delete the zip. Measured on the dev Mac
+  for a stop with ~450 trips: 5 s download + 7 s filtering, 65 MB peak memory for the
+  whole process, 150 MB of temporary disk. A Pi 5 is maybe 3–4x slower at the filtering
+  (not yet measured), so well under a minute, once a day. It
+  rebuilds after 05:00 (BODS regenerates the files ~04:30) and keeps using yesterday's
+  cut if the download fails.
+- *Live, every minute:* GTFS-RT vehicle positions in a box around the routes up to our
+  stop. We chose GTFS-RT over SIRI-VM because BODS has already matched each bus to its
+  GTFS `trip_id`, the same id as in the timetable (96 of 99 buses in central Leeds when we
+  tried it), so there's no fuzzy matching on route names and start times. The protobuf is
+  read by ~100 lines of our own (`hub/gtfs_rt.py`) instead of adding `protobuf`.
+  Positions aren't predictions, so we place each bus on its route between two stops,
+  compare with when it was timetabled to be there, and carry that delay on to our stop.
+  Buses waiting at the start of their route aren't counted as early; we never believe
+  a bus is more than 5 minutes early.
+- Each departure is marked live or timetabled. No key, or the live call fails: timetable
+  only, clearly labelled. Needs `BODS_API_KEY` (free) in `.env`.
+
+Alternatives looked at: West Yorkshire Metro's "yournextbus" real-time service has no
+documented public API; bustimes.org is a great site (and how to find your stop code)
+but scraping it isn't ours to do; paid aggregators (TransportAPI) cost money for what
+BODS gives free.
 
 ## Personality lives in a plain Markdown file
 Re-read on every reply, so we can iterate without restarts. The shared template is

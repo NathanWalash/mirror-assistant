@@ -34,7 +34,7 @@ that draws, one config block. `uv run mirror-hub` shows the screen without the v
 |---|---|
 | `personality/personas/mirror.example.md` | `personality/personas/mirror.md` |
 | `config.example.yaml` | `config.yaml` |
-| code, docs, scripts | `models/`, `.env`, `*.wav` |
+| code, docs, scripts | `models/`, `cache/`, `.env` (API keys), `*.wav` |
 
 **The repo is public.** Names, addresses, calendar links, API keys and in-jokes about real
 people go in the private files only. If a personality tweak is good for everyone,

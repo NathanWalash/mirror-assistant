@@ -9,6 +9,7 @@ __pycache__/
 models/*
 !models/.gitkeep
 *.wav
+cache/
 
 # Secrets & local overrides
 .env

@@ -1,0 +1,9 @@
+route_id,service_id,trip_id,trip_headsign,direction_id,block_id,shape_id,wheelchair_accessible,vehicle_journey_code
+r1,WK,T1,"Leeds Bus Stn",0,,,0,VJ1
+r1,WK,T2,"",0,,,0,VJ2
+r2,WK,T3,"No Pickup",0,,,0,VJ3
+r1,SUN,T4,"Sunday Only",0,,,0,VJ4
+r2,WK,T5,"Terminates Here",0,,,0,VJ5
+r2,EXTRA,T6,"Extra",0,,,0,VJ6
+r1,WK,T7,"Night Bus",0,,,0,VJ7
+r1,WK,T8,"Not Our Stop",0,,,0,VJ8

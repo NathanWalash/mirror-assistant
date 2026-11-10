@@ -92,3 +92,19 @@ widgets:
     #     copy the webcal:// link (anyone with it can see the calendar).
     # Check it with:  uv run mirror-hub --once calendar
     calendars: []
+
+  bus:
+    enabled: true
+    refresh_minutes: 1
+    # Next buses from your stop, from the Bus Open Data Service (BODS). The timetable
+    # needs no key; live bus positions need a free BODS_API_KEY in .env (git-ignored).
+    # Put YOUR stop's ATCO code in config.yaml: find it on bustimes.org (the 9+ digit
+    # code on the stop's page; West Yorkshire codes start 450). This default is a public
+    # city-centre stop: Leeds Trinity (stop R), Boar Lane.
+    stops: ["450010687"]   # one or more stops, e.g. both sides of the road
+    routes: []           # only these route numbers, e.g. ["33", "33A"]; empty = all
+    max_departures: 5
+    walk_minutes: 0      # hide buses leaving sooner than you can get to the stop
+    horizon_minutes: 90  # how far ahead to look
+    name: ""             # label on the mirror; empty = the stop's name
+    region: yorkshire    # which BODS GTFS region file holds your stop

@@ -37,11 +37,12 @@ Rough order. AI first, then the mirror around it.
       the screen without the voice loop), see docs/widgets.md
 - [x] Hub: weather (Open-Meteo)
 - [x] Hub: both calendars (private ICS links; recurring, all-day, time zones)
-- [ ] Hub: local bus stop (Bus Open Data Service, West Yorkshire)
+- [x] Hub: local bus stop (Bus Open Data Service: daily GTFS timetable + live GTFS-RT positions)
 - [x] Display v1: orb that reacts to idle/listening/thinking/speaking + subtitles
 - [x] Display: widget slots around the orb, clock/date, weather
 - [x] Display: calendar widget (bottom-left)
-- [ ] Display: bus widget (bottom-right slot is free)
+- [x] Display: bus widget (bottom-right)
+- [ ] Buses: watch the live times against the real stop for a week; tune if often off
 - [ ] Chromium kiosk on the Pi
 - [ ] Mirror can answer from real data ("what's my day like?"); `Hub.snapshot()` has it
       (the calendar data carries ready-made `summary` lines for this)
