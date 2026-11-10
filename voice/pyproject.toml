@@ -12,6 +12,7 @@ dependencies = [
 
 [project.scripts]
 mirror-talk = "mirror_voice.app:main"
+mirror-hub = "mirror_voice.hub.cli:main"
 
 [build-system]
 requires = ["hatchling"]

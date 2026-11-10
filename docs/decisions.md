@@ -39,6 +39,19 @@ SSE using only Python's standard library. No framework or build step yet: one HT
 with a canvas orb. On the Pi, Chromium in kiosk mode shows the same page. We'll reach
 for a framework only once widgets make the page complex.
 
+## Widgets: a hub of small fetchers, pushed down the same event stream
+Each widget is one Python module with a `fetch(settings) -> dict` (stdlib `urllib`, no
+extra dependencies) and one JS file that draws it into a named slot around the orb.
+The hub runs a thread per widget on its own timer and publishes `{"widget": ...}` events
+through the display's existing SSE stream; the server remembers each widget's latest event
+so a freshly opened page fills in at once. A failed fetch never touches the voice loop: the
+last good data stays up, dimmed, with "not updated since ...". Still no framework or build
+step, so the Pi's Chromium can load it offline. `mirror-hub` runs the screen without the
+model, for working on widgets.
+
+**Weather: Open-Meteo.** Free, no API key or account, good UK coverage, and it gives an
+hourly chance of rain, which matters more in West Yorkshire than the temperature does.
+
 ## Personality lives in a plain Markdown file
 Re-read on every reply, so we can iterate without restarts. The shared template is
 committed and personal copies are git-ignored (the repo is public).

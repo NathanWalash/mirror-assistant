@@ -1,6 +1,6 @@
 import shutil
 
-from mirror_voice.config import deep_merge, find_repo_root, load_config
+from mirror_voice.config import WidgetConfig, deep_merge, find_repo_root, load_config
 
 
 def test_deep_merge_overrides_nested_keys_only():
@@ -29,3 +29,19 @@ def test_personal_config_overrides_example(tmp_path):
 def test_works_without_personal_config(tmp_path):
     shutil.copy(find_repo_root() / "config.example.yaml", tmp_path / "config.example.yaml")
     assert load_config(tmp_path).llm.port == 8080
+
+
+def test_widgets_section_loads_with_settings_and_overrides(tmp_path):
+    shutil.copy(find_repo_root() / "config.example.yaml", tmp_path / "config.example.yaml")
+    (tmp_path / "config.yaml").write_text("widgets:\n  weather:\n    latitude: 51.5\n")
+    weather = load_config(tmp_path).widgets["weather"]
+    assert weather.enabled is True
+    assert weather.refresh_minutes == 15
+    assert weather.settings["latitude"] == 51.5
+    assert weather.settings["longitude"] == -1.5492  # still from the example
+    assert "enabled" not in weather.settings
+
+
+def test_widget_block_defaults():
+    assert WidgetConfig.from_raw(None) == WidgetConfig(True, None, {})
+    assert WidgetConfig.from_raw({"enabled": False, "refresh_minutes": 1}).refresh_minutes == 1.0

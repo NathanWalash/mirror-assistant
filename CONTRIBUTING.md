@@ -23,6 +23,11 @@
 - Open a pull request into `main`. CI must pass, and the other person gives it a look
   before merging.
 
+## Adding a widget (calendar, buses, ...)
+
+Follow [docs/widgets.md](docs/widgets.md): one Python module that fetches, one JS file
+that draws, one config block. `uv run mirror-hub` shows the screen without the voice loop.
+
 ## Private vs shared
 
 | Shared (committed) | Private (git-ignored) |

@@ -7,7 +7,7 @@ so new settings added to the example still reach everyone.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +52,23 @@ class DisplayConfig:
 
 
 @dataclass(frozen=True)
+class WidgetConfig:
+    """One block under `widgets:`. Everything except the two common keys is `settings`,
+    which the widget's own module reads (e.g. latitude/longitude for weather)."""
+
+    enabled: bool
+    refresh_minutes: float | None  # None: the widget's DEFAULT_REFRESH_MINUTES
+    settings: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, raw: dict[str, Any] | None) -> WidgetConfig:
+        settings = dict(raw or {})
+        enabled = bool(settings.pop("enabled", True))
+        refresh = settings.pop("refresh_minutes", None)
+        return cls(enabled, None if refresh is None else float(refresh), settings)
+
+
+@dataclass(frozen=True)
 class Config:
     root: Path
     persona: Path
@@ -59,6 +76,7 @@ class Config:
     stt: STTConfig
     tts: TTSConfig
     display: DisplayConfig
+    widgets: dict[str, WidgetConfig] = field(default_factory=dict)
 
 
 def find_repo_root(start: Path | None = None) -> Path:
@@ -113,4 +131,7 @@ def load_config(root: Path | None = None) -> Config:
             port=int(display.get("port", 8765)),
             open_browser=bool(display.get("open_browser", True)),
         ),
+        widgets={
+            name: WidgetConfig.from_raw(block) for name, block in (raw.get("widgets") or {}).items()
+        },
     )

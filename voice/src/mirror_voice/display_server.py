@@ -9,6 +9,8 @@ Events are small JSON objects, e.g.:
     {"heard": "what you're saying so far"}
     {"you": "what you said"}
     {"say": "one sentence Mirror is speaking"}
+    {"widget": "weather", "status": "ok", "data": {...}, "updated": 1762770000.0}
+                                # from the hub, see mirror_voice/hub/__init__.py
 """
 
 from __future__ import annotations
@@ -30,11 +32,15 @@ class Broadcaster:
         self._clients: set[queue.Queue[str]] = set()
         self._lock = threading.Lock()
         self._last_state = {"state": "idle"}
+        self._last_widgets: dict[str, str] = {}  # widget name -> its latest event
 
     def subscribe(self) -> queue.Queue[str]:
         q: queue.Queue[str] = queue.Queue(maxsize=256)
-        q.put_nowait(json.dumps(self._last_state))  # new pages start in the right state
+        # New pages start in the right state, with every widget already filled in.
+        q.put_nowait(json.dumps(self._last_state))
         with self._lock:
+            for data in self._last_widgets.values():
+                q.put_nowait(data)
             self._clients.add(q)
         return q
 
@@ -47,6 +53,8 @@ class Broadcaster:
             self._last_state = {"state": event["state"]}
         data = json.dumps(event)
         with self._lock:
+            if "widget" in event:
+                self._last_widgets[str(event["widget"])] = data
             clients = list(self._clients)
         for q in clients:
             try:

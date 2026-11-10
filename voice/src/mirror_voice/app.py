@@ -5,12 +5,14 @@ uv run mirror-talk --selftest   # no mic: a synthetic voice asks, the pipeline a
 uv run mirror-talk --voices     # list every voice you can put in your config.yaml
 uv run mirror-talk --say "Ey up" [--voice kokoro_bm_lewis]   # hear a voice
 
-While live, the display (glowing orb + subtitles) is served at http://127.0.0.1:8765/.
+While live, the display (glowing orb, subtitles, widgets) is served at http://127.0.0.1:8765/.
+To see the display and widgets without the voice loop: uv run mirror-hub
 """
 
 from __future__ import annotations
 
 import argparse
+import logging
 import queue
 import sys
 import threading
@@ -24,6 +26,7 @@ import numpy as np
 
 from mirror_voice.config import Config, load_config
 from mirror_voice.display_server import Broadcaster, DisplayServer, loudness
+from mirror_voice.hub import Hub
 from mirror_voice.llm import Conversation, LLMClient, LLMUnavailable
 from mirror_voice.persona import Persona
 from mirror_voice.sentences import SentenceSplitter
@@ -281,6 +284,9 @@ def main() -> None:
         print(f"Display: {server.url}")
         if cfg.display.open_browser:
             webbrowser.open(server.url)
+        # Widget fetch failures are logged as warnings and shown as stale on the display.
+        logging.basicConfig(level=logging.WARNING, format="\n(%(message)s)")
+        Hub(cfg.widgets, mirror.display.publish).start()
     live(mirror)
 
 

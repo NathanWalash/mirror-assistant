@@ -33,8 +33,13 @@ Rough order. AI first, then the mirror around it.
 - [ ] Echo-cancelling mic (needed for interrupting with speakers on)
 
 ## The mirror
+- [x] Hub: widget framework (background refreshers, stale handling, `mirror-hub` to run
+      the screen without the voice loop), see docs/widgets.md
+- [x] Hub: weather (Open-Meteo)
+- [ ] Hub: both calendars (private ICS links)
+- [ ] Hub: local bus stop (Bus Open Data Service, West Yorkshire)
 - [x] Display v1: orb that reacts to idle/listening/thinking/speaking + subtitles
-- [ ] Hub: weather (Open-Meteo), both calendars (private ICS links), local bus stop
-      (Bus Open Data Service, West Yorkshire)
-- [ ] Display: weather/calendar/bus widgets around the orb; Chromium kiosk on the Pi
-- [ ] Assistant can answer from real data ("what's my day like?")
+- [x] Display: widget slots around the orb, clock/date, weather
+- [ ] Display: calendar and bus widgets (bottom-left / bottom-right slots are free)
+- [ ] Chromium kiosk on the Pi
+- [ ] Mirror can answer from real data ("what's my day like?"); `Hub.snapshot()` has it
