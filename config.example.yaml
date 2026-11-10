@@ -40,7 +40,21 @@ tts:
   volume: 1.0
 
 display:
-  # The mirror screen (glowing orb + subtitles), served while talk.sh runs.
+  # The mirror screen (orb, subtitles, widgets), served while talk.sh or mirror-hub runs.
   enabled: true
   port: 8765
   open_browser: true   # open it automatically in your browser
+
+widgets:
+  # Info shown around the orb. Each widget has `enabled` and `refresh_minutes`
+  # (optional; each widget has a sensible default), plus its own settings.
+  # Check one without the voice loop:  uv run mirror-hub --once weather
+  weather:
+    enabled: true
+    refresh_minutes: 15
+    # Open-Meteo forecast, no API key. Put YOUR location in config.yaml (git-ignored);
+    # this default is Leeds city centre.
+    latitude: 53.7997
+    longitude: -1.5492
+    place: Leeds         # label on the mirror; leave empty to hide
+    rain_hours: 6        # how far ahead the "rain likely from..." line looks

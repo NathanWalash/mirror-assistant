@@ -4,8 +4,8 @@ An old TV + a Raspberry Pi 5, turned into a smart mirror for our flat: weather, 
 buses, and **Mirror**, a sarcastic Yorkshire assistant you can talk to out loud.
 Everything runs locally, with no cloud.
 
-**Status:** voice loop + a first display (a glowing orb with subtitles) work on a Mac.
-Weather, calendars and Pi deployment come later.
+**Status:** voice loop + the display (a glowing orb with subtitles, a clock and the
+weather around it) work on a Mac. Calendars, buses and Pi deployment come later.
 
 ## Quickstart (macOS)
 
@@ -19,8 +19,14 @@ microphone access for your terminal the first time.
 
 A browser tab opens with **Mirror's face**: a glowing orb that breathes when idle, lights
 up when it hears you, swirls while thinking, and pulses as it talks, with subtitles.
+Around it sit the time and date and the weather (from Open-Meteo, no API key: set your
+`latitude`/`longitude` under `widgets.weather` in `config.yaml`).
 Click it or press F for full screen. (It's at http://127.0.0.1:8765, and you can turn the
 auto-open off in your `config.yaml`.)
+
+**Just the screen, no talking:** `uv run mirror-hub` serves the display and widgets without
+the model or mic, and `uv run mirror-hub --once weather` prints what the weather widget
+would show.
 
 No mic, or just checking it works? `scripts/talk.sh --selftest` asks Mirror a question
 with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
@@ -33,6 +39,7 @@ with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 | Shared personality template | `personality/personas/mirror.example.md` | after re-copying |
 | **Voice** (`tts.voice`), talking speed | `config.yaml` (your private copy) | restart `talk.sh` |
 | Model, creativity, reply length, display | `config.yaml` (your private copy) | restart `talk.sh` |
+| Widgets: location, refresh rate, on/off (`widgets:`) | `config.yaml` (your private copy) | restart |
 | Shared defaults for everyone | `config.example.yaml` | restart `talk.sh` |
 
 **Trying voices:**
@@ -52,21 +59,24 @@ Your `config.yaml` and `mirror.md` are git-ignored (setup creates them from the
 mic → Moonshine (speech-to-text) → llama.cpp (Hermes-3 Llama 3.2 3B, abliterated)
     → Kokoro (text-to-speech, "George" by default, British male) → speakers
                                   ↘ display/ (orb + subtitles, live via Server-Sent Events)
+hub (background threads: weather, ...) ↗
 ```
 
 The reply is streamed and spoken sentence by sentence, so Mirror starts talking before
-it has finished thinking. More detail in [docs/decisions.md](docs/decisions.md).
+it has finished thinking. Widgets are fetched by the hub on their own timers and pushed
+down the same event stream. More detail in [docs/decisions.md](docs/decisions.md);
+adding a widget: [docs/widgets.md](docs/widgets.md).
 
 ## Repo layout
 
 ```
-voice/         the talk loop (Python package: mirror_voice)
-display/       the mirror screen (plain HTML/JS, served by the voice loop)
+voice/         the talk loop (Python package: mirror_voice); mirror_voice/hub/ = widget fetchers
+display/       the mirror screen (plain HTML/JS, served by the voice loop); widgets/ = one file each
 personality/   personas now; fine-tuning datasets and scripts later
 scripts/       setup.sh, talk.sh
 models/        downloaded models and voices (git-ignored)
 docs/          decisions, hardware notes, roadmap
-hub/ deploy/   coming later
+deploy/        coming later
 ```
 
 Working on it together: see [CONTRIBUTING.md](CONTRIBUTING.md).
