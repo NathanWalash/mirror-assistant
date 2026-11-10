@@ -36,11 +36,19 @@ widget would show.
 No mic, or just checking it works? `scripts/talk.sh --selftest` asks Mirror a question
 with a synthetic voice and saves the reply to `models/selftest_reply.wav`.
 
+**How fast is it?** `scripts/talk.sh --bench` asks five fixed questions the same way (no
+mic or speakers) and prints a table of each stage: speech-to-text time, the model's time to
+first token and tokens/sec, the voice's real-time factor, and how long until Mirror starts
+talking. `uv run mirror-talk --bench tts` times just the voice (no model server needed;
+add `--voice piper_en_GB-alan-medium` to compare voices), and `--bench stt` just
+speech-to-text. Each run is also appended as one JSON line to `models/bench.jsonl`.
+
 ## Changing Mirror
 
 | What | Where | Applies |
 |---|---|---|
 | Personality | `personality/personas/mirror.md` (your private copy) | next reply, no restart |
+| **Name** (`assistant.name`), names to listen out for (`stt.keyterms`) | `config.yaml` (your private copy) | restart `talk.sh` |
 | Shared personality template | `personality/personas/mirror.example.md` | after re-copying |
 | **Voice** (`tts.voice`), talking speed | `config.yaml` (your private copy) | restart `talk.sh` |
 | Model, creativity, reply length, display | `config.yaml` (your private copy) | restart `talk.sh` |
@@ -79,6 +87,11 @@ uv run mirror-talk --voices                                  # list them all
 uv run mirror-talk --say "Ey up, you look rough" --voice kokoro_bm_lewis   # hear one
 ```
 Then set the one you like as `tts.voice` in your `config.yaml`.
+
+**Renaming it:** set `assistant.name` in your `config.yaml` (and change the name in your
+`mirror.md` persona too). The name is shown in the console and taught to speech-to-text,
+so it isn't misheard as ordinary words. Add your own names to `stt.keyterms`
+there as well (e.g. `keyterms: [Alex, Sam]`) so it hears who's talking about whom.
 
 Your `config.yaml` and `mirror.md` are git-ignored (setup creates them from the
 `*.example*` templates), so personal stuff is safe there.

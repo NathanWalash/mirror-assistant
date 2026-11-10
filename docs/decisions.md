@@ -22,6 +22,23 @@ Built for edge devices and transcribes while you talk. Its own Pi 5 benchmarks: 
 Streaming ~0.24s and Small Streaming ~0.53s, vs ~5.9s for Whisper Tiny (vendor numbers,
 to be verified on our Pi). Voice activity detection is built in.
 
+**Names via key-term biasing.** Moonshine's streaming models can be nudged towards a list
+of words (`set_keyterms`), no retraining. We pass the assistant's name plus `stt.keyterms`
+from the private config (real names stay out of the repo). On synthetic speech it fixed
+names misheard as ordinary words (one came out as "my code", another as "gay poem") and
+left names it already got right alone. Side effect seen: biased lines sometimes lose their
+punctuation, which the LLM doesn't mind. Keep the list short; Moonshine warns that long
+lists cost accuracy on other words.
+
+## Measure, don't guess: `mirror-talk --bench`
+The Pi numbers in this file are mostly vendor figures and guesses. `--bench` runs fixed
+questions through the real pipeline with no mic or speakers and logs every stage to
+`models/bench.jsonl`, so model, STT and voice choices come from our own Pi.
+`--bench tts` isolates the voice, Kokoro on the Pi being the biggest unknown.
+Baseline on an M-series Mac (Hermes-3 3B Q4_K_M, small_streaming, Kokoro George): STT
+~0.2s, LLM first token ~0.1s at ~65 tok/s, TTS real-time factor ~0.25-0.3, and ~0.9s
+from end of speech to first audio.
+
 ## Text-to-speech: Kokoro via Moonshine (`kokoro_bm_george` by default)
 Piper's northern voice sounded too robotic. Moonshine (already our speech-to-text) also
 runs Kokoro, Piper and ZipVoice voices behind one API, so the voice is a single config

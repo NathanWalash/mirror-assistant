@@ -32,8 +32,14 @@ class LLMConfig:
 
 
 @dataclass(frozen=True)
+class AssistantConfig:
+    name: str
+
+
+@dataclass(frozen=True)
 class STTConfig:
     model: str
+    keyterms: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -118,11 +124,42 @@ class WidgetConfig:
 class Config:
     root: Path
     persona: Path
+    assistant: AssistantConfig
     llm: LLMConfig
     stt: STTConfig
     tts: TTSConfig
     display: DisplayConfig
     widgets: dict[str, WidgetConfig] = field(default_factory=dict)
+
+    @property
+    def keyterms(self) -> list[str]:
+        """Words speech-to-text should listen out for: the assistant's name first."""
+        return merge_keyterms(self.assistant.name, self.stt.keyterms)
+
+
+def merge_keyterms(name: str, extra: list[str] | tuple[str, ...]) -> list[str]:
+    """`name` followed by `extra`, blanks dropped and duplicates (any case) removed."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for term in (name, *extra):
+        term = term.strip()
+        if term and term.lower() not in seen:
+            seen.add(term.lower())
+            out.append(term)
+    return out
+
+
+def parse_keyterms(raw: Any) -> tuple[str, ...]:
+    """stt.keyterms from YAML: a list of words/phrases (empty or missing means none)."""
+    if raw is None:
+        return ()
+    if isinstance(raw, str) or not isinstance(raw, list):
+        raise ValueError(f"stt.keyterms must be a list, e.g. [Alex, Sam], not {raw!r}")
+    terms = tuple(str(term).strip() for term in raw)
+    for term in terms:
+        if "," in term:  # Moonshine uses commas to separate terms
+            raise ValueError(f"stt.keyterms entries can't contain commas: {term!r}")
+    return tuple(term for term in terms if term)
 
 
 def find_repo_root(start: Path | None = None) -> Path:
@@ -154,9 +191,13 @@ def load_config(root: Path | None = None) -> Config:
 
     llm, stt, tts = raw["llm"], raw["stt"], raw["tts"]
     display = raw.get("display", {})
+    name = str((raw.get("assistant") or {}).get("name") or "Mirror").strip()
+    if "," in name:
+        raise ValueError(f"assistant.name can't contain commas: {name!r}")
     return Config(
         root=root,
         persona=root / raw["persona"],
+        assistant=AssistantConfig(name=name),
         llm=LLMConfig(
             port=int(llm["port"]),
             model=str(llm["model"]),
@@ -165,7 +206,7 @@ def load_config(root: Path | None = None) -> Config:
             max_tokens=int(llm["max_tokens"]),
             history_turns=int(llm["history_turns"]),
         ),
-        stt=STTConfig(model=str(stt["model"])),
+        stt=STTConfig(model=str(stt["model"]), keyterms=parse_keyterms(stt.get("keyterms"))),
         tts=TTSConfig(
             voice=str(tts["voice"]),
             language=str(tts.get("language", "en-gb")),

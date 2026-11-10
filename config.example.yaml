@@ -9,6 +9,12 @@
 # Restart scripts/talk.sh after changing settings. (The persona file is different:
 # it's re-read on every reply, no restart needed.)
 
+assistant:
+  # What the assistant is called: used on screen, in the console and taught to
+  # speech-to-text so it hears the name properly. (Its personality, including what it
+  # calls itself in conversation, is the persona file below.)
+  name: Mirror
+
 # Who Mirror is. Plain English; edit this file to change the personality.
 # Your private copy (git-ignored), created from mirror.example.md by scripts/setup.sh.
 persona: personality/personas/mirror.md
@@ -27,6 +33,12 @@ stt:
   # Moonshine speech-to-text model: tiny_streaming | small_streaming | medium_streaming
   # Bigger = more accurate but slower. small_streaming is our bet for the Pi.
   model: small_streaming
+  # Names and unusual words to listen out for, so they aren't heard as ordinary words.
+  # The assistant's name is added automatically. Only *_streaming models support this.
+  # Put your flatmates' names in your config.yaml, never here (this file is public), e.g.
+  #   keyterms: [Alex, Sam, Headingley]
+  # Keep the list short: each extra term costs a little accuracy on other words.
+  keyterms: []
 
 tts:
   # Mirror's voice. Change this one line and restart talk.sh.

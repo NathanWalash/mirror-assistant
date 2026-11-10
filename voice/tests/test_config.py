@@ -7,6 +7,8 @@ from mirror_voice.config import (
     deep_merge,
     find_repo_root,
     load_config,
+    merge_keyterms,
+    parse_keyterms,
 )
 
 
@@ -79,3 +81,56 @@ def test_night_dimming_rejects_bad_times_and_ignores_no_ops():
     for bad in ("25:00", "midnight", "6"):
         with pytest.raises(ValueError, match="06:30"):
             NightConfig.from_raw({"start": bad})
+
+
+def personal(tmp_path, text: str):
+    shutil.copy(find_repo_root() / "config.example.yaml", tmp_path / "config.example.yaml")
+    (tmp_path / "config.yaml").write_text(text)
+    return load_config(tmp_path)
+
+
+def test_example_names_the_assistant_and_adds_no_personal_keyterms(tmp_path):
+    shutil.copy(find_repo_root() / "config.example.yaml", tmp_path / "config.example.yaml")
+    cfg = load_config(tmp_path)
+    assert cfg.assistant.name == "Mirror"
+    assert cfg.stt.keyterms == ()
+    assert cfg.keyterms == ["Mirror"]
+
+
+def test_personal_name_and_keyterms_reach_speech_to_text(tmp_path):
+    cfg = personal(tmp_path, "assistant:\n  name: Robin\nstt:\n  keyterms: [Alex, Sam]\n")
+    assert cfg.assistant.name == "Robin"
+    assert cfg.keyterms == ["Robin", "Alex", "Sam"]
+    assert cfg.stt.model == "small_streaming"  # rest of stt still from the example
+
+
+def test_missing_assistant_section_defaults_to_mirror(tmp_path):
+    (tmp_path / "config.example.yaml").write_text(
+        "persona: p.md\nllm: {port: 1, model: m, context_size: 1, temperature: 1,"
+        " max_tokens: 1, history_turns: 1}\nstt: {model: tiny}\ntts: {voice: v}\n"
+    )
+    cfg = load_config(tmp_path)
+    assert cfg.assistant.name == "Mirror"
+    assert cfg.stt.keyterms == ()
+
+
+def test_merge_keyterms_puts_name_first_and_drops_duplicates():
+    terms = merge_keyterms("Robin", ["robin", " Alex ", "", "Sam", "alex"])
+    assert terms == ["Robin", "Alex", "Sam"]
+
+
+def test_parse_keyterms():
+    assert parse_keyterms(None) == ()
+    assert parse_keyterms([]) == ()
+    assert parse_keyterms(["Alex", " Leeds ", ""]) == ("Alex", "Leeds")
+
+
+@pytest.mark.parametrize("bad", ["Alex, Sam", ["Alex, Sam"], {"a": 1}])
+def test_parse_keyterms_rejects_strings_and_commas(bad):
+    with pytest.raises(ValueError):
+        parse_keyterms(bad)
+
+
+def test_name_with_comma_is_rejected(tmp_path):
+    with pytest.raises(ValueError):
+        personal(tmp_path, "assistant:\n  name: Robin, the mirror\n")
